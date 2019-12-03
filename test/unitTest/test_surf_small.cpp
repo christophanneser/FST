@@ -24,20 +24,26 @@ public:
 TEST_F (SuRFSmallTest, ExampleInPaperTest) {
     std::vector<std::string> keys;
 
-    keys.push_back(std::string("f"));
-    keys.push_back(std::string("far"));
-    keys.push_back(std::string("fas"));
-    keys.push_back(std::string("fast"));
-    keys.push_back(std::string("fat"));
-    keys.push_back(std::string("s"));
-    keys.push_back(std::string("top"));
-    keys.push_back(std::string("toy"));
-    keys.push_back(std::string("trie"));
-    keys.push_back(std::string("trip"));
-    keys.push_back(std::string("try"));
+    keys.emplace_back(std::string("aaaa"));
+    keys.emplace_back(std::string("aaab"));
+    keys.emplace_back(std::string("aaac"));
+    keys.emplace_back(std::string("abaa"));
+    keys.emplace_back(std::string("abab"));
+    keys.emplace_back(std::string("abac"));
+    keys.emplace_back(std::string("baaa"));
+    keys.emplace_back(std::string("baab"));
+    keys.emplace_back(std::string("baac"));
+    keys.emplace_back(std::string("bbaa"));
+    keys.emplace_back(std::string("bbab"));
+    keys.emplace_back(std::string("bbac"));
+    keys.emplace_back(std::string("cabc"));
+    keys.emplace_back(std::string("cabd"));
+    keys.emplace_back(std::string("cacc"));
+    keys.emplace_back(std::string("cacd"));
 
     SuRF* surf = new SuRF(keys, kIncludeDense, kSparseDenseRatio, kSuffixType, 0, kSuffixLen);
-    bool exist = surf->lookupRange(std::string("top"), false, std::string("toyy"), false);
+    //bool exist = surf->lookupRange(std::string("top"), false, std::string("toyy"), false);
+    bool exist = surf->lookupKey(std::string("topless"));
     ASSERT_TRUE(exist);
     exist = surf->lookupRange(std::string("toq"), false, std::string("toyy"), false);
     ASSERT_TRUE(exist);

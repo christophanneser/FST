@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "config.hpp"
 #include "surf.hpp"
@@ -16,8 +17,8 @@ namespace surftest {
 static const std::string kFilePath = "../../../test/words.txt";
 static const int kWordTestSize = 234369;
 static const uint64_t kIntTestStart = 10;
-static const int kIntTestBound = 1000001;
-static const uint64_t kIntTestSkip = 10;
+static const int kIntTestBound = 34000001;
+static const uint64_t kIntTestSkip = 1;
 static const int kNumSuffixType = 4;
 static const SuffixType kSuffixTypeList[kNumSuffixType] = {kNone, kHash, kReal, kMixed};
 static const int kNumSuffixLen = 6;
@@ -185,14 +186,23 @@ TEST_F (SuRFUnitTest, serializeTest) {
 TEST_F (SuRFUnitTest, lookupIntTest) {
     for (int t = 0; t < kNumSuffixType; t++) {
 	for (int k = 0; k < kNumSuffixLen; k++) {
+        auto start = std::chrono::high_resolution_clock::now();
 	    newSuRFInts(kSuffixTypeList[t], kSuffixLenList[k]);
-	    for (uint64_t i = 0; i < kIntTestBound; i += kIntTestSkip) {
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
+
+        start = std::chrono::high_resolution_clock::now();
+        for (uint64_t i = 0; i < kIntTestBound; i += kIntTestSkip) {
 		bool key_exist = surf_->lookupKey(uint64ToString(i));
 		if (i % kIntTestSkip == 0)
 		    ASSERT_TRUE(key_exist);
 		else
 		    ASSERT_FALSE(key_exist);
 	    }
+        finish = std::chrono::high_resolution_clock::now();
+        elapsed = finish - start;
+        std::cout << "lookup time " << std::to_string(elapsed.count()) << std::endl;
 	    surf_->destroy();
 	    delete surf_;
 	}

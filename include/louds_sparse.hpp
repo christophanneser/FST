@@ -206,9 +206,10 @@ bool LoudsSparse::lookupKey(const std::string& key, const position_t in_node_num
 	    return false;
 
 	// if trie branch terminates
-	if (!child_indicator_bits_->readBit(pos))
-	    return suffixes_->checkEquality(getSuffixPos(pos), key, level + 1);
-
+	if (!child_indicator_bits_->readBit(pos)) {
+	    // CA todo: return value here
+	    return true;
+    }
 	// move to child
 	node_num = getChildNodeNum(pos);
 	pos = getFirstLabelPos(node_num);

@@ -192,7 +192,8 @@ void SuRFBuilder::buildSparse(const std::vector<std::string>& keys) {
 	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], keys[i+1], level);
 	else // for last key, there is no successor key in the list
 	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], std::string(), level);
-	insertSuffix(keys[curpos], level);
+	// ca todo remove suffixes
+	//insertSuffix(keys[curpos], level);
     }
 }
 
@@ -212,35 +213,39 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(const std::string& key, con
     bool is_start_of_node = false;
     bool is_term = false;
     // If it is the start of level, the louds bit needs to be set.
-    if (isLevelEmpty(level))
-	is_start_of_node = true;
+    if (isLevelEmpty(level)) {
+	    is_start_of_node = true;
+    }
 
     // After skipping the common prefix, the first following byte
     // shoud be in an the node as the previous key.
     insertKeyByte(key[level], level, is_start_of_node, is_term);
     level++;
-    if (level > next_key.length()
-	|| !isSameKey(key.substr(0, level), next_key.substr(0, level)))
-	return level;
+    // todo: CA: we comment this out since we want to store the full keys
+    //if (level > next_key.length()
+	//|| !isSameKey(key.substr(0, level), next_key.substr(0, level)))
+	//return level;
 
-    // All the following bytes inserted must be the start of a
-    // new node.
+    // All the following bytes inserted must be the start of a new node.
     is_start_of_node = true;
-    while (level < key.length() && level < next_key.length() && key[level] == next_key[level]) {
+    // todo CA: comment following conditions out: && level < next_key.length() && key[level] == next_key[level]
+    while (level < key.length()) {
 	insertKeyByte(key[level], level, is_start_of_node, is_term);
 	level++;
     }
+    return level;
 
     // The last byte inserted makes key unique in the trie.
-    if (level < key.length()) {
-	insertKeyByte(key[level], level, is_start_of_node, is_term);
-    } else {
-	is_term = true;
-	insertKeyByte(kTerminator, level, is_start_of_node, is_term);
-    }
-    level++;
-
-    return level;
+    // Todo: we want to store the full key in the trie
+    //if (level < key.length()) {
+	//insertKeyByte(key[level], level, is_start_of_node, is_term);
+    //} else {
+	//is_term = true;
+	//insertKeyByte(kTerminator, level, is_start_of_node, is_term);
+    //}
+    //level++;
+//
+    //return level;
 }
 
 inline void SuRFBuilder::insertSuffix(const std::string& key, const level_t level) {
