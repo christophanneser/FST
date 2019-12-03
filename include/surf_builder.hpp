@@ -27,7 +27,7 @@ public:
     // through a single scan of the sorted key list.
     // After build, the member vectors are used in SuRF constructor.
     // REQUIRED: provided key list must be sorted.
-    void build(const std::vector<std::string>& keys);
+    void build(const std::vector<std::string>& keys, const std::vector<uint64_t >& values );
 
     static bool readBit(const std::vector<word_t>& bits, const position_t pos) {
 	assert(pos < (bits.size() * kWordSize));
@@ -91,6 +91,15 @@ public:
 	return real_suffix_len_;
     }
 
+    std::vector<uint64_t > getDenseValues() const {
+        return values_dense;
+    }
+
+    std::vector<uint64_t > getSparseValues() const {
+        return values_sparse;
+    }
+
+
 private:
     static bool isSameKey(const std::string& a, const std::string& b) {
 	return a.compare(b) == 0;
@@ -98,7 +107,7 @@ private:
 
     // Fill in the LOUDS-Sparse vectors through a single scan
     // of the sorted key list.
-    void buildSparse(const std::vector<std::string>& keys);
+    void buildSparse(const std::vector<std::string>& keys, const std::vector<uint64_t >& values);
 
     // Walks down the current partially-filled trie by comparing key to
     // its previous key in the list until their prefixes do not match.
@@ -113,7 +122,7 @@ private:
     // key and next_key do not match.
     // This function is called after skipCommonPrefix. Therefore, it
     // guarantees that the stored prefix of key is unique in the trie.
-    level_t insertKeyBytesToTrieUntilUnique(const std::string& key, const std::string& next_key, const level_t start_level);
+    level_t insertKeyBytesToTrieUntilUnique(const std::string& key, const uint64_t v, const std::string& next_key, const level_t start_level);
 
     // Fills in the suffix byte for key
     inline void insertSuffix(const std::string& key, const level_t level);
@@ -152,15 +161,21 @@ private:
     uint32_t sparse_dense_ratio_;
     level_t sparse_start_level_;
 
+    std::vector<std::vector<uint64_t >> values_;
+
     // LOUDS-Sparse bit/byte vectors
     std::vector<std::vector<label_t> > labels_;
     std::vector<std::vector<word_t> > child_indicator_bits_;
     std::vector<std::vector<word_t> > louds_bits_;
+    std::vector<uint64_t > values_sparse;
+
 
     // LOUDS-Dense bit vectors
     std::vector<std::vector<word_t> > bitmap_labels_;
     std::vector<std::vector<word_t> > bitmap_child_indicator_bits_;
     std::vector<std::vector<word_t> > prefixkey_indicator_bits_;
+    std::vector<uint64_t > values_dense;
+
 
     SuffixType suffix_type_;
     level_t hash_suffix_len_;
@@ -173,25 +188,25 @@ private:
     std::vector<bool> is_last_item_terminator_;
 };
 
-void SuRFBuilder::build(const std::vector<std::string>& keys) {
+void SuRFBuilder::build(const std::vector<std::string>& keys, const std::vector<uint64_t >& values) {
     assert(keys.size() > 0);
-    buildSparse(keys);
+    buildSparse(keys, values);
     if (include_dense_) {
 	determineCutoffLevel();
 	buildDense();
     }
 }
 
-void SuRFBuilder::buildSparse(const std::vector<std::string>& keys) {
+void SuRFBuilder::buildSparse(const std::vector<std::string>& keys, const std::vector<uint64_t >& values) {
     for (position_t i = 0; i < keys.size(); i++) {
 	level_t level = skipCommonPrefix(keys[i]);	
 	position_t curpos = i;
 	while ((i + 1 < keys.size()) && isSameKey(keys[curpos], keys[i+1]))
 	    i++;
 	if (i < keys.size() - 1)
-	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], keys[i+1], level);
+	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], values[i], keys[i+1], level);
 	else // for last key, there is no successor key in the list
-	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], std::string(), level);
+	    level = insertKeyBytesToTrieUntilUnique(keys[curpos], values[i], std::string(), level);
 	// ca todo remove suffixes
 	//insertSuffix(keys[curpos], level);
     }
@@ -206,7 +221,7 @@ level_t SuRFBuilder::skipCommonPrefix(const std::string& key) {
     return level;
 }
 
-level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(const std::string& key, const std::string& next_key, const level_t start_level) {
+level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(const std::string& key, const uint64_t v, const std::string& next_key, const level_t start_level) {
     assert(start_level < key.length());
 
     level_t level = start_level;
@@ -233,6 +248,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(const std::string& key, con
 	insertKeyByte(key[level], level, is_start_of_node, is_term);
 	level++;
     }
+    values_[level - 1].emplace_back(v);
     return level;
 
     // The last byte inserted makes key unique in the trie.
@@ -331,6 +347,15 @@ inline void SuRFBuilder::determineCutoffLevel() {
 	sparse_mem = computeSparseMem(cutoff_level);
     }
     sparse_start_level_ = cutoff_level--;
+
+    // CA build dense and sparse values vectors
+    for (uint64_t level = 0; level < sparse_start_level_; level++) {
+        values_dense.insert(values_dense.end(), values_[level].begin(), values_[level].end());
+    }
+
+    for (uint64_t level = sparse_start_level_; level < values_.size(); level++) {
+        values_sparse.insert(values_sparse.end(), values_[level].begin(), values_[level].end());
+    }
 }
 
 inline uint64_t SuRFBuilder::computeDenseMem(const level_t downto_level) const {
@@ -402,11 +427,12 @@ void SuRFBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
 }
 
 void SuRFBuilder::addLevel() {
-    labels_.push_back(std::vector<label_t>());
-    child_indicator_bits_.push_back(std::vector<word_t>());
-    louds_bits_.push_back(std::vector<word_t>());
-    suffixes_.push_back(std::vector<word_t>());
-    suffix_counts_.push_back(0);
+    labels_.emplace_back(std::vector<label_t>());
+    values_.emplace_back(std::vector<uint64_t>());
+    child_indicator_bits_.emplace_back(std::vector<word_t>());
+    louds_bits_.emplace_back(std::vector<word_t>());
+    suffixes_.emplace_back(std::vector<word_t>());
+    suffix_counts_.emplace_back(0);
 
     node_counts_.push_back(0);
     is_last_item_terminator_.push_back(false);

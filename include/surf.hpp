@@ -56,29 +56,29 @@ public:
     //------------------------------------------------------------------
     // Input keys must be SORTED
     //------------------------------------------------------------------
-    SuRF(const std::vector<std::string>& keys) {
-	create(keys, kIncludeDense, kSparseDenseRatio, kNone, 0, 0);
+    SuRF(const std::vector<std::string>& keys, const std::vector<uint64_t >& values) {
+	create(keys, values, kIncludeDense, kSparseDenseRatio, kNone, 0, 0);
     }
 
-    SuRF(const std::vector<std::string>& keys, const SuffixType suffix_type,
+    SuRF(const std::vector<std::string>& keys, const std::vector<uint64_t >& values,  const SuffixType suffix_type,
 	 const level_t hash_suffix_len, const level_t real_suffix_len) {
-	create(keys, kIncludeDense, kSparseDenseRatio, suffix_type, hash_suffix_len, real_suffix_len);
+	create(keys, values, kIncludeDense, kSparseDenseRatio, suffix_type, hash_suffix_len, real_suffix_len);
     }
     
-    SuRF(const std::vector<std::string>& keys,
+    SuRF(const std::vector<std::string>& keys, const std::vector<uint64_t >& values,
 	 const bool include_dense, const uint32_t sparse_dense_ratio,
 	 const SuffixType suffix_type, const level_t hash_suffix_len, const level_t real_suffix_len) {
-	create(keys, include_dense, sparse_dense_ratio, suffix_type, hash_suffix_len, real_suffix_len);
+	create(keys, values, include_dense, sparse_dense_ratio, suffix_type, hash_suffix_len, real_suffix_len);
     }
 
     ~SuRF() {}
 
-    void create(const std::vector<std::string>& keys,
+    void create(const std::vector<std::string>& keys, const std::vector<uint64_t >& values,
 		const bool include_dense, const uint32_t sparse_dense_ratio,
 		const SuffixType suffix_type,
                 const level_t hash_suffix_len, const level_t real_suffix_len);
 
-    bool lookupKey(const std::string& key) const;
+    bool lookupKey(const std::string& key, uint64_t& value) const;
     // This function searches in a conservative way: if inclusive is true
     // and the stored key prefix matches key, iter stays at this key prefix.
     SuRF::Iter moveToKeyGreaterThan(const std::string& key, const bool inclusive) const;
@@ -123,25 +123,26 @@ private:
     SuRF::Iter iter_;
 };
 
-void SuRF::create(const std::vector<std::string>& keys, 
+void SuRF::create(const std::vector<std::string>& keys, const std::vector<uint64_t >& values,
 		  const bool include_dense, const uint32_t sparse_dense_ratio,
 		  const SuffixType suffix_type,
                   const level_t hash_suffix_len, const level_t real_suffix_len) {
+    // todo where to store the values?
     builder_ = new SuRFBuilder(include_dense, sparse_dense_ratio,
                               suffix_type, hash_suffix_len, real_suffix_len);
-    builder_->build(keys);
+    builder_->build(keys, values);
     louds_dense_ = new LoudsDense(builder_);
     louds_sparse_ = new LoudsSparse(builder_);
     iter_ = SuRF::Iter(this);
     delete builder_;
 }
 
-bool SuRF::lookupKey(const std::string& key) const {
+bool SuRF::lookupKey(const std::string& key, uint64_t& value) const {
     position_t connect_node_num = 0;
-    if (!louds_dense_->lookupKey(key, connect_node_num))
+    if (!louds_dense_->lookupKey(key, connect_node_num, value))
 	return false;
     else if (connect_node_num != 0)
-	return louds_sparse_->lookupKey(key, connect_node_num);
+	return louds_sparse_->lookupKey(key, connect_node_num, value);
     return true;
 }
 
@@ -178,7 +179,8 @@ SuRF::Iter SuRF::moveToKeyLessThan(const std::string& key, const bool inclusive)
     }
     if (!iter.getFpFlag()) {
 	iter--;
-	if (lookupKey(key))
+    uint64_t value = 0;
+	if (lookupKey(key, value))
 	    iter--;
     }
     return iter;

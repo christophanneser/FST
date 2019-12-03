@@ -30,6 +30,7 @@ TEST_F (SuRFSmallTest, ExampleInPaperTest) {
     keys.emplace_back(std::string("abaa"));
     keys.emplace_back(std::string("abab"));
     keys.emplace_back(std::string("abac"));
+    keys.emplace_back(std::string("ac"));
     keys.emplace_back(std::string("baaa"));
     keys.emplace_back(std::string("baab"));
     keys.emplace_back(std::string("baac"));
@@ -40,15 +41,20 @@ TEST_F (SuRFSmallTest, ExampleInPaperTest) {
     keys.emplace_back(std::string("cabd"));
     keys.emplace_back(std::string("cacc"));
     keys.emplace_back(std::string("cacd"));
+    keys.emplace_back(std::string("d"));
+    keys.emplace_back(std::string("e"));
 
-    SuRF* surf = new SuRF(keys, kIncludeDense, kSparseDenseRatio, kSuffixType, 0, kSuffixLen);
-    //bool exist = surf->lookupRange(std::string("top"), false, std::string("toyy"), false);
-    bool exist = surf->lookupKey(std::string("topless"));
-    ASSERT_TRUE(exist);
-    exist = surf->lookupRange(std::string("toq"), false, std::string("toyy"), false);
-    ASSERT_TRUE(exist);
-    exist = surf->lookupRange(std::string("trie"), false, std::string("tripp"), false);
-    ASSERT_TRUE(exist);
+    std::vector<uint64_t > values;
+    for (uint64_t i = 0; i < keys.size(); i++) values.emplace_back(i);
+
+    SuRF* surf = new SuRF(keys, values, kIncludeDense, kSparseDenseRatio, kSuffixType, 0, kSuffixLen);
+
+    for (uint64_t i = 0; i < values.size(); i++) {
+        uint64_t value = 0;
+        bool exist = surf->lookupKey(keys[i], value);
+        ASSERT_TRUE(exist);
+        ASSERT_EQ(i, value);
+    }
 
     SuRF::Iter iter = surf->moveToKeyGreaterThan(std::string("t"), true);
     ASSERT_TRUE(iter.isValid());
