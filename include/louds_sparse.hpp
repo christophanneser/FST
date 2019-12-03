@@ -239,8 +239,8 @@ namespace surf {
                 // pos - rank(S-HasChild, pos)
                 uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
                 value = values_sparse_[value_pos];
-                std::cout << "value index for key " << key << ": "
-                          << std::to_string(pos - child_indicator_bits_->rank(pos)) << std::endl;
+                //std::cout << "value index for key " << key << ": "
+                //          << std::to_string(pos - child_indicator_bits_->rank(pos)) << std::endl;
                 return true;
             }
             // move to child

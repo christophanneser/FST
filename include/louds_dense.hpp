@@ -234,7 +234,7 @@ namespace surf {
                 // CA todo: we must return the value or value index here
                 uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1; // + prefix but we do not support this so far
                 value = values_dense_[value_index];
-                std::cout << "value index dense: " << std::to_string(value_index) << std::endl;
+                //std::cout << "value index dense: " << std::to_string(value_index) << std::endl;
                 return true;
             }
             node_num = getChildNodeNum(pos);

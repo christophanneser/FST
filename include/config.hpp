@@ -50,6 +50,12 @@ std::string uint64ToString(const uint64_t word) {
     return std::string(reinterpret_cast<const char*>(&endian_swapped_word), 8);
 }
 
+std::string uint32ToString(const uint32_t word) {
+    uint32_t endian_swapped_word = __builtin_bswap32(word);
+    return std::string(reinterpret_cast<const char*>(&endian_swapped_word), 4);
+}
+
+
 uint64_t stringToUint64(const std::string& str_word) {
     uint64_t int_word = 0;
     memcpy(reinterpret_cast<char*>(&int_word), str_word.data(), 8);
