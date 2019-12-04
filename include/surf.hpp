@@ -42,6 +42,8 @@ namespace surf {
 
             bool operator--(int);
 
+            bool operator!=(const Iter &);
+
         private:
             void passToSparse();
 
@@ -94,8 +96,8 @@ namespace surf {
 
         SuRF::Iter moveToLast() const;
 
-        bool lookupRange(const std::string &left_key, bool left_inclusive,
-                         const std::string &right_key, bool right_inclusive);
+        std::pair<SuRF::Iter, SuRF::Iter> lookupRange(const std::string &left_key, bool left_inclusive,
+                                                      const std::string &right_key, bool right_inclusive);
 
         uint64_t serializedSize() const;
 
@@ -133,6 +135,7 @@ namespace surf {
         LoudsSparse *louds_sparse_;
         SuRFBuilder *builder_;
         SuRF::Iter iter_;
+        SuRF::Iter end_;
     };
 
     void SuRF::create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
@@ -227,8 +230,21 @@ namespace surf {
         return iter;
     }
 
-    bool SuRF::lookupRange(const std::string &left_key, const bool left_inclusive,
-                           const std::string &right_key, const bool right_inclusive) {
+    std::pair<SuRF::Iter, SuRF::Iter> SuRF::lookupRange(const std::string &left_key, const bool left_inclusive,
+                                                        const std::string &right_key, const bool right_inclusive) {
+
+        auto begin_iter = moveToKeyGreaterThan(left_key, left_inclusive);
+        auto end_iter = moveToKeyGreaterThan(right_key, false);
+
+        // the right key should be inclusive -> move end-iterator to next element if there is one
+        if (right_inclusive) {
+            if (end_iter.isValid()) {
+                end_iter++;
+            }
+        }
+
+        return {begin_iter, end_iter};
+
         iter_.clear();
         louds_dense_->moveToKeyGreaterThan(left_key, left_inclusive, iter_.dense_iter_);
         if (!iter_.dense_iter_.isValid()) return false;
@@ -382,6 +398,26 @@ namespace surf {
         if (decrementSparseIter())
             return true;
         return decrementDenseIter();
+    }
+
+    bool SuRF::Iter::operator!=(const SuRF::Iter &other) {
+        //compare two iterators
+
+        // both iterators invalid
+        if (!this->isValid() && !other.isValid()) { return false; }
+
+        // one of them is invalid -> iterators are not equal
+        if (!this->isValid() || !other.isValid()) { return true; }
+
+        if (this->dense_iter_.getLastIteratorPosition() != other.dense_iter_.getLastIteratorPosition()) {
+            return true;
+        }
+
+        // dense is equal, check sparse levels now
+        if (this->sparse_iter_.getLastIteratorPosition() != other.sparse_iter_.getLastIteratorPosition()) {
+            return true;
+        }
+
     }
 
 } // namespace surf

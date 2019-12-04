@@ -61,9 +61,13 @@ namespace surf {
 
             void moveToRightMostKey();
 
+            uint64_t getLastIteratorPosition() const;
+
             void operator++(int);
 
             void operator--(int);
+
+
 
         private:
             inline void append(position_t pos);
@@ -237,6 +241,7 @@ namespace surf {
             // if is_at_prefix_key_, pos is at the next valid position in the child node
             pos = node_num * kNodeFanout;
             if (level >= key.length()) { // if run out of searchKey bytes
+                // CA: todo if run out, then traverse to leftmost key
                 iter.append(getNextPos(pos - 1));
                 if (prefixkey_indicator_bits_->readBit(node_num)) //if the prefix is also a key
                     iter.is_at_prefix_key_ = true;
@@ -255,9 +260,17 @@ namespace surf {
                 iter++;
                 return false;
             }
-            //if trie branch terminates
-            if (!child_indicator_bitmaps_->readBit(pos))
-                return compareSuffixGreaterThan(pos, key, level + 1, inclusive, iter);
+            // CA todo: do we need the following branch?
+            // if trie branch terminates
+            if (!child_indicator_bitmaps_->readBit(pos)) {
+                if (inclusive) {
+                    iter.setFlags(true, true, true, true);
+                }
+                else {
+                    iter++;
+                }
+                return true;
+            }
             node_num = getChildNodeNum(pos);
         }
 
@@ -496,6 +509,10 @@ namespace surf {
         send_out_node_num_ = trie_->getChildNodeNum(pos);
         // valid, search complete, moveleft complete, moveRight INCOMPLETE
         setFlags(true, true, true, false);
+    }
+
+    uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
+        return pos_in_trie_.back();
     }
 
     void LoudsDense::Iter::operator++(int) {

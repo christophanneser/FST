@@ -51,6 +51,8 @@ namespace surf {
 
             void moveToRightMostKey();
 
+            uint64_t  getLastIteratorPosition() const;
+
             void operator++(int);
 
             void operator--(int);
@@ -167,7 +169,7 @@ namespace surf {
         static const position_t kRankBasicBlockSize = 512;
         static const position_t kSelectSampleInterval = 64;
 
-        std::vector<uint64_t > values_sparse_;
+        std::vector<uint64_t> values_sparse_;
 
         level_t height_; // trie height
         level_t start_level_; // louds-sparse encoding starts at this level
@@ -248,6 +250,7 @@ namespace surf {
             position_t node_size = nodeSize(pos);
             // if no exact match
             if (!labels_->search((label_t) key[level], pos, node_size)) {
+                // todo -> do not return false, but just move to the next bigger key?
                 moveToLeftInNextSubtrie(pos, node_size, key[level], iter);
                 return false;
             }
@@ -255,9 +258,15 @@ namespace surf {
             iter.append(key[level], pos);
 
             // if trie branch terminates
-            if (!child_indicator_bits_->readBit(pos))
-                return compareSuffixGreaterThan(pos, key, level + 1, inclusive, iter);
-
+            if (!child_indicator_bits_->readBit(pos)) {
+                if (inclusive) {
+                    iter.is_valid_ = true;
+                }
+                else {
+                    iter++;
+                }
+                return true; //compareSuffixGreaterThan(pos, key, level + 1, inclusive, iter);
+            }
             // move to child
             node_num = getChildNodeNum(pos);
             pos = getFirstLabelPos(node_num);
@@ -346,12 +355,12 @@ namespace surf {
     bool LoudsSparse::compareSuffixGreaterThan(const position_t pos, const std::string &key,
                                                const level_t level, const bool inclusive,
                                                LoudsSparse::Iter &iter) const {
-        position_t suffix_pos = getSuffixPos(pos);
-        int compare = suffixes_->compare(suffix_pos, key, level);
-        if ((compare != kCouldBePositive) && (compare < 0)) {
-            iter++;
-            return false;
-        }
+        //position_t suffix_pos = getSuffixPos(pos);
+        //int compare = suffixes_->compare(suffix_pos, key, level);
+        //if ((compare != kCouldBePositive) && (compare < 0)) {
+        //    iter++;
+        //    return false;
+        //}
         iter.is_valid_ = true;
         return true;
     }
@@ -526,6 +535,12 @@ namespace surf {
         }
         assert(false); // shouldn't reach here
     }
+
+    uint64_t  LoudsSparse::Iter::getLastIteratorPosition() const {
+        return pos_in_trie_.back();
+    };
+
+
 
     void LoudsSparse::Iter::operator++(int) {
         assert(key_len_ > 0);

@@ -17,13 +17,13 @@ static const uint32_t kSparseDenseRatio = 0;
 static const SuffixType kSuffixType = kReal;
 static const level_t kSuffixLen = 8;
 
-class SuRFSmallTest : public ::testing::Test {
+class SuRFInt32Test : public ::testing::Test {
 public:
     virtual void SetUp () {}
     virtual void TearDown () {}
 };
 
-TEST_F (SuRFSmallTest, ExampleInPaperTest) {
+TEST_F (SuRFInt32Test, ExampleInPaperTest) {
     std::vector<std::string> keys;
 
     keys.push_back(std::string("f"));
