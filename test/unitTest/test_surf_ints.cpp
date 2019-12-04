@@ -27,7 +27,6 @@ namespace surf {
         };
 
         TEST_F (SuRFSmallTest, ExampleInt32Test) {
-            std::vector<std::string> keys;
 
             std::vector<std::string> keys_int32(number_keys);
             std::vector<uint64_t> values_uint64(number_keys);
@@ -43,8 +42,7 @@ namespace surf {
             std::cout << "indexed keys: " << std::to_string(keys_int32.size() / 1000000) << "M" << std::endl;
 
             auto start = std::chrono::high_resolution_clock::now();
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, kSparseDenseRatio, kSuffixType, 0,
-                                  kSuffixLen);
+            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, kSparseDenseRatio);
             auto finish = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = finish - start;
             std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;

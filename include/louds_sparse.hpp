@@ -207,20 +207,6 @@ namespace surf {
         louds_bits_ = new BitvectorSelect(kSelectSampleInterval, builder->getLoudsBits(),
                                           num_items_per_level, start_level_, height_);
 
-        if (builder->getSuffixType() == kNone) {
-            suffixes_ = new BitvectorSuffix();
-        } else {
-            level_t hash_suffix_len = builder->getHashSuffixLen();
-            level_t real_suffix_len = builder->getRealSuffixLen();
-            level_t suffix_len = hash_suffix_len + real_suffix_len;
-            std::vector<position_t> num_suffix_bits_per_level;
-            for (level_t level = 0; level < height_; level++)
-                num_suffix_bits_per_level.push_back(builder->getSuffixCounts()[level] * suffix_len);
-
-            suffixes_ = new BitvectorSuffix(builder->getSuffixType(), hash_suffix_len, real_suffix_len,
-                                            builder->getSuffixes(),
-                                            num_suffix_bits_per_level, start_level_, height_);
-        }
         values_sparse_ = builder->getSparseValues();
     }
 

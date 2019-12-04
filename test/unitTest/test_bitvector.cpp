@@ -17,6 +17,7 @@ namespace bitvectortest {
 static const std::string kFilePath = "../../../test/words.txt";
 static const int kTestSize = 234369;
 static std::vector<std::string> words;
+static std::vector<uint64_t > values;
 
 class BitvectorUnitTest : public ::testing::Test {
 public:

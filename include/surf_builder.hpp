@@ -14,12 +14,10 @@ namespace surf {
 
 class SuRFBuilder {
 public: 
-    SuRFBuilder() : sparse_start_level_(0), suffix_type_(kNone) {};
-    explicit SuRFBuilder(bool include_dense, uint32_t sparse_dense_ratio,
-			 SuffixType suffix_type, level_t hash_suffix_len, level_t real_suffix_len)
+    SuRFBuilder() : sparse_start_level_(0) {};
+    explicit SuRFBuilder(bool include_dense, uint32_t sparse_dense_ratio)
 	: include_dense_(include_dense), sparse_dense_ratio_(sparse_dense_ratio),
-	  sparse_start_level_(0), suffix_type_(suffix_type),
-          hash_suffix_len_(hash_suffix_len), real_suffix_len_(real_suffix_len) {};
+	  sparse_start_level_(0) {};
 
     ~SuRFBuilder() {};
 
@@ -66,29 +64,12 @@ public:
     const std::vector<std::vector<word_t> >& getLoudsBits() const {
 	return louds_bits_;
     }
-    const std::vector<std::vector<word_t> >& getSuffixes() const {
-	return suffixes_;
-    }
-    const std::vector<position_t>& getSuffixCounts() const {
-	return suffix_counts_;
-    }
+
     const std::vector<position_t>& getNodeCounts() const {
 	return node_counts_;
     }
     level_t getSparseStartLevel() const {
 	return sparse_start_level_;
-    }
-    SuffixType getSuffixType() const {
-	return suffix_type_;
-    }
-    level_t getSuffixLen() const {
-	return hash_suffix_len_ + real_suffix_len_;
-    }
-    level_t getHashSuffixLen() const {
-	return hash_suffix_len_;
-    }
-    level_t getRealSuffixLen() const {
-	return real_suffix_len_;
     }
 
     std::vector<uint64_t > getDenseValues() const {
@@ -176,13 +157,6 @@ private:
     std::vector<std::vector<word_t> > prefixkey_indicator_bits_;
     std::vector<uint64_t > values_dense;
 
-
-    SuffixType suffix_type_;
-    level_t hash_suffix_len_;
-    level_t real_suffix_len_;
-    std::vector<std::vector<word_t> > suffixes_;
-    std::vector<position_t> suffix_counts_;
-
     // auxiliary per level bookkeeping vectors
     std::vector<position_t> node_counts_;
     std::vector<bool> is_last_item_terminator_;
@@ -264,15 +238,6 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(const std::string& key, con
     //return level;
 }
 
-inline void SuRFBuilder::insertSuffix(const std::string& key, const level_t level) {
-    if (level >= getTreeHeight())
-	addLevel();
-    assert(level - 1 < suffixes_.size());
-    word_t suffix_word = BitvectorSuffix::constructSuffix(suffix_type_, key, hash_suffix_len_,
-                                                          level, real_suffix_len_);
-    storeSuffix(level, suffix_word);
-}
-
 inline bool SuRFBuilder::isCharCommonPrefix(const label_t c, const level_t level) const {
     return (level < getTreeHeight())
 	&& (!is_last_item_terminator_[level])
@@ -313,30 +278,6 @@ void SuRFBuilder::insertKeyByte(const char c, const level_t level, const bool is
     moveToNextItemSlot(level);
 }
 
-
-inline void SuRFBuilder::storeSuffix(const level_t level, const word_t suffix) {
-    level_t suffix_len = getSuffixLen();
-    position_t pos = suffix_counts_[level-1] * suffix_len;
-    assert(pos <= (suffixes_[level-1].size() * kWordSize));
-    if (pos == (suffixes_[level-1].size() * kWordSize))
-	suffixes_[level-1].push_back(0);
-    position_t word_id = pos / kWordSize;
-    position_t offset = pos % kWordSize;
-    position_t word_remaining_len = kWordSize - offset;
-    if (suffix_len <= word_remaining_len) {
-	word_t shifted_suffix = suffix << (word_remaining_len - suffix_len);
-	suffixes_[level-1][word_id] += shifted_suffix;
-    } else {
-	word_t suffix_left_part = suffix >> (suffix_len - word_remaining_len);
-	suffixes_[level-1][word_id] += suffix_left_part;
-	suffixes_[level-1].push_back(0);
-	word_id++;
-	word_t suffix_right_part = suffix << (kWordSize - (suffix_len - word_remaining_len));
-	suffixes_[level-1][word_id] += suffix_right_part;
-    }
-    suffix_counts_[level-1]++;
-}
-
 inline void SuRFBuilder::determineCutoffLevel() {
     level_t cutoff_level = 0;
     uint64_t dense_mem = computeDenseMem(cutoff_level);
@@ -365,7 +306,6 @@ inline uint64_t SuRFBuilder::computeDenseMem(const level_t downto_level) const {
 	mem += (2 * kFanout * node_counts_[level]);
 	if (level > 0)
 	    mem += (node_counts_[level - 1] / 8 + 1);
-	mem += (suffix_counts_[level] * getSuffixLen() / 8);
     }
     return mem;
 }
@@ -375,7 +315,6 @@ inline uint64_t SuRFBuilder::computeSparseMem(const level_t start_level) const {
     for (level_t level = start_level; level < getTreeHeight(); level++) {
 	position_t num_items = labels_[level].size();
 	mem += (num_items + 2 * num_items / 8 + 1);
-	mem += (suffix_counts_[level] * getSuffixLen() / 8);
     }
     return mem;
 }
@@ -431,8 +370,6 @@ void SuRFBuilder::addLevel() {
     values_.emplace_back(std::vector<uint64_t>());
     child_indicator_bits_.emplace_back(std::vector<word_t>());
     louds_bits_.emplace_back(std::vector<word_t>());
-    suffixes_.emplace_back(std::vector<word_t>());
-    suffix_counts_.emplace_back(0);
 
     node_counts_.push_back(0);
     is_last_item_terminator_.push_back(false);
