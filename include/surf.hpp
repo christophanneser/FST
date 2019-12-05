@@ -234,17 +234,24 @@ namespace surf {
                                                         const std::string &right_key, const bool right_inclusive) {
 
         auto begin_iter = moveToKeyGreaterThan(left_key, left_inclusive);
-        auto end_iter = moveToKeyGreaterThan(right_key, false);
+        auto end_iter = moveToKeyGreaterThan(right_key, true);
 
         // the right key should be inclusive -> move end-iterator to next element if there is one
         if (right_inclusive) {
             if (end_iter.isValid()) {
-                end_iter++;
+                // do move the iterator only in the case the provided right key has been found
+                if (end_iter.getKey() == right_key) {
+                    end_iter++;
+                }
             }
         }
 
-        return {begin_iter, end_iter};
+        if (end_iter.isValid() && begin_iter.isValid() && begin_iter.getKey() > end_iter.getKey()) {
+            return {Iter(), Iter()};
+        }
 
+        return {begin_iter, end_iter};
+        /*
         iter_.clear();
         louds_dense_->moveToKeyGreaterThan(left_key, left_inclusive, iter_.dense_iter_);
         if (!iter_.dense_iter_.isValid()) return false;
@@ -268,6 +275,7 @@ namespace surf {
             return (compare <= 0);
         else
             return (compare < 0);
+        */
     }
 
     uint64_t SuRF::serializedSize() const {
@@ -417,6 +425,7 @@ namespace surf {
         if (this->sparse_iter_.getLastIteratorPosition() != other.sparse_iter_.getLastIteratorPosition()) {
             return true;
         }
+        return false;
 
     }
 
