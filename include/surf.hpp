@@ -31,6 +31,8 @@ namespace surf {
 
             int compare(const std::string &key) const;
 
+            uint64_t getValue() const;
+
             std::string getKey() const;
 
             int getSuffix(word_t *suffix) const;
@@ -319,6 +321,12 @@ namespace surf {
         return sparse_iter_.compare(key);
     }
 
+    uint64_t SuRF::Iter::getValue() const {
+        // todo
+        return 0;
+    }
+
+
     std::string SuRF::Iter::getKey() const {
         if (!isValid())
             return std::string();
@@ -419,6 +427,11 @@ namespace surf {
 
         if (this->dense_iter_.getLastIteratorPosition() != other.dense_iter_.getLastIteratorPosition()) {
             return true;
+        }
+
+        // dense iterators are equal and both of them are complete -> search not continued in sparse levels
+        if (this->dense_iter_.isComplete() && other.dense_iter_.isComplete()) {
+            return false;
         }
 
         // dense is equal, check sparse levels now
