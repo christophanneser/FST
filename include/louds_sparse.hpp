@@ -24,6 +24,8 @@ namespace surf {
                 for (level_t level = start_level_; level < trie_->getHeight(); level++) {
                     key_.push_back(0);
                     pos_in_trie_.push_back(0);
+                    value_pos_.push_back(0);
+                    value_pos_initialized_.push_back(false);
                 }
             }
 
@@ -51,7 +53,9 @@ namespace surf {
 
             void moveToRightMostKey();
 
-            uint64_t  getLastIteratorPosition() const;
+            uint64_t getValue() const;
+
+            uint64_t getLastIteratorPosition() const;
 
             void operator++(int);
 
@@ -73,6 +77,10 @@ namespace surf {
 
             std::vector<label_t> key_;
             std::vector<position_t> pos_in_trie_;
+
+            // stores the index of the current (sparse) value
+            std::vector<position_t> value_pos_;
+            std::vector<bool> value_pos_initialized_;
             bool is_at_terminator_;
 
             friend class LoudsSparse;
@@ -259,16 +267,16 @@ namespace surf {
 
             // if trie branch terminates
             if (!child_indicator_bits_->readBit(pos)) {
-                if (inclusive) {
-                    iter.is_valid_ = true;
-                }
-                else {
-                    iter++;
-                }
-                return true; //compareSuffixGreaterThan(pos, key, level + 1, inclusive, iter);
+                if (inclusive) { iter.is_valid_ = true; }
+                else { iter++; }
+                // todo initially rank value position
+                iter.value_pos_initialized_[iter.key_len_ - 1] = true;
+                uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
+                iter.value_pos_[iter.key_len_ - 1] = value_pos;
+                return true;
             }
             // move to child
-           node_num = getChildNodeNum(pos);
+            node_num = getChildNodeNum(pos);
             pos = getFirstLabelPos(node_num);
         }
 
@@ -475,6 +483,14 @@ namespace surf {
                 && !trie_->isEndofNode(pos))
                 is_at_terminator_ = true;
             is_valid_ = true;
+            // todo just increase value position here
+            if (value_pos_initialized_[key_len_ - 1]) {
+                value_pos_[key_len_ - 1]++;
+            } else {
+                value_pos_initialized_[key_len_ - 1] = true;
+                uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
+                value_pos_[key_len_ - 1] = value_pos;
+            }
             return;
         }
 
@@ -488,6 +504,14 @@ namespace surf {
                 if ((label == kTerminator)
                     && !trie_->isEndofNode(pos))
                     is_at_terminator_ = true;
+                // todo rank value position here
+                if (value_pos_initialized_[key_len_ - 1]) {
+                    value_pos_[key_len_ - 1]++;
+                } else {
+                    value_pos_initialized_[key_len_ - 1] = true;
+                    uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
+                    value_pos_[key_len_ - 1] = value_pos;
+                }
                 is_valid_ = true;
                 return;
             }
@@ -536,10 +560,13 @@ namespace surf {
         assert(false); // shouldn't reach here
     }
 
-    uint64_t  LoudsSparse::Iter::getLastIteratorPosition() const {
+    uint64_t LoudsSparse::Iter::getValue() const {
+        return trie_->values_sparse_[value_pos_[key_len_ - 1]];
+    }
+
+    uint64_t LoudsSparse::Iter::getLastIteratorPosition() const {
         return pos_in_trie_[key_len_ - 1];
     };
-
 
 
     void LoudsSparse::Iter::operator++(int) {
@@ -547,6 +574,7 @@ namespace surf {
         is_at_terminator_ = false;
         position_t pos = pos_in_trie_[key_len_ - 1];
         pos++;
+        // trie_->louds_bits_ is set for last label in a node -> node terminates here
         while (pos >= trie_->louds_bits_->numBits() || trie_->louds_bits_->readBit(pos)) {
             key_len_--;
             if (key_len_ == 0) {
@@ -556,6 +584,7 @@ namespace surf {
             pos = pos_in_trie_[key_len_ - 1];
             pos++;
         }
+
         set(key_len_ - 1, pos);
         return moveToLeftMostKey();
     }

@@ -63,10 +63,11 @@ namespace surf {
 
             uint64_t getLastIteratorPosition() const;
 
+            uint64_t getValue() const;
+
             void operator++(int);
 
             void operator--(int);
-
 
 
         private:
@@ -96,6 +97,9 @@ namespace surf {
 
             std::vector<label_t> key_;
             std::vector<position_t> pos_in_trie_;
+
+            // stores the index of the current (sparse) value
+            std::vector<position_t> value_pos_;
             bool is_at_prefix_key_;
 
             friend class LoudsDense;
@@ -170,7 +174,7 @@ namespace surf {
         static const position_t kNodeFanout = 256;
         static const position_t kRankBasicBlockSize = 512;
 
-        std::vector<uint64_t > values_dense_;
+        std::vector<uint64_t> values_dense_;
 
         level_t height_;
 
@@ -221,7 +225,8 @@ namespace surf {
 
             if (!child_indicator_bitmaps_->readBit(pos)) { //if trie branch terminates
                 // CA todo: we must return the value or value index here
-                uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1; // + prefix but we do not support this so far
+                uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) -
+                                       1; // + prefix but we do not support this so far
                 value = values_dense_[value_index];
                 //std::cout << "value index dense: " << std::to_string(value_index) << std::endl;
                 return true;
@@ -265,8 +270,7 @@ namespace surf {
             if (!child_indicator_bitmaps_->readBit(pos)) {
                 if (inclusive) {
                     iter.setFlags(true, true, true, true);
-                }
-                else {
+                } else {
                     iter++;
                 }
                 return true;
@@ -513,6 +517,10 @@ namespace surf {
 
     uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
         return pos_in_trie_[key_len_ - 1];
+    }
+
+    uint64_t LoudsDense::Iter::getValue() const {
+        return trie_->values_dense_[value_pos_[key_len_ - 1]];
     }
 
     void LoudsDense::Iter::operator++(int) {

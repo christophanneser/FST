@@ -322,8 +322,9 @@ namespace surf {
     }
 
     uint64_t SuRF::Iter::getValue() const {
-        // todo
-        return 0;
+        if (dense_iter_.isComplete())
+            return dense_iter_.getValue();
+        return sparse_iter_.getValue();
     }
 
 
