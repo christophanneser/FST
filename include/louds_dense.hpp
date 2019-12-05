@@ -16,15 +16,17 @@ namespace surf {
         public:
             Iter() : is_valid_(false) {};
 
-            Iter(LoudsDense *trie) : is_valid_(false), is_search_complete_(false),
-                                     is_move_left_complete_(false),
-                                     is_move_right_complete_(false),
-                                     trie_(trie),
-                                     send_out_node_num_(0), key_len_(0),
-                                     is_at_prefix_key_(false) {
+            explicit Iter(LoudsDense *trie) : is_valid_(false), is_search_complete_(false),
+                                              is_move_left_complete_(false),
+                                              is_move_right_complete_(false),
+                                              trie_(trie),
+                                              send_out_node_num_(0), key_len_(0),
+                                              is_at_prefix_key_(false) {
                 for (level_t level = 0; level < trie_->getHeight(); level++) {
                     key_.push_back(0);
                     pos_in_trie_.push_back(0);
+                    value_pos_.push_back(0);
+                    value_pos_initialized_.push_back(false);
                 }
             }
 
@@ -65,6 +67,8 @@ namespace surf {
 
             uint64_t getValue() const;
 
+            void rankValuePosition(size_t pos);
+
             void operator++(int);
 
             void operator--(int);
@@ -100,6 +104,7 @@ namespace surf {
 
             // stores the index of the current (sparse) value
             std::vector<position_t> value_pos_;
+            std::vector<bool> value_pos_initialized_;
             bool is_at_prefix_key_;
 
             friend class LoudsDense;
@@ -265,7 +270,7 @@ namespace surf {
                 iter++;
                 return false;
             }
-            // CA todo: do we need the following branch?
+
             // if trie branch terminates
             if (!child_indicator_bitmaps_->readBit(pos)) {
                 if (inclusive) {
@@ -273,6 +278,8 @@ namespace surf {
                 } else {
                     iter++;
                 }
+                // set value index here
+                iter.rankValuePosition(pos);
                 return true;
             }
             node_num = getChildNodeNum(pos);
@@ -456,9 +463,12 @@ namespace surf {
         assert(key_len_ > 0);
         level_t level = key_len_ - 1;
         position_t pos = pos_in_trie_[level];
-        if (!trie_->child_indicator_bitmaps_->readBit(pos))
+        if (!trie_->child_indicator_bitmaps_->readBit(pos)) {
+            rankValuePosition(pos);
             // valid, search complete, moveLeft complete, moveRight complete
             return setFlags(true, true, true, true);
+        }
+
 
         while (level < trie_->getHeight() - 1) {
             position_t node_num = trie_->getChildNodeNum(pos);
@@ -474,9 +484,11 @@ namespace surf {
             append(pos);
 
             // if trie branch terminates
-            if (!trie_->child_indicator_bitmaps_->readBit(pos))
+            if (!trie_->child_indicator_bitmaps_->readBit(pos)) {
+                rankValuePosition(pos);
                 // valid, search complete, moveLeft complete, moveRight complete
                 return setFlags(true, true, true, true);
+            }
 
             level++;
         }
@@ -521,6 +533,18 @@ namespace surf {
 
     uint64_t LoudsDense::Iter::getValue() const {
         return trie_->values_dense_[value_pos_[key_len_ - 1]];
+    }
+
+    void LoudsDense::Iter::rankValuePosition(size_t pos){
+        if (value_pos_initialized_[key_len_ - 1]) {
+            value_pos_[key_len_ - 1]++;
+        } else { // initially rank value position here
+            std::cout << "rank dense" << std::endl;
+            value_pos_initialized_[key_len_ - 1] = true;
+            uint64_t value_index = trie_->label_bitmaps_->rank(pos) - trie_->child_indicator_bitmaps_->rank(pos) -
+                                   1; // + prefix but we do not support this so far
+            value_pos_[key_len_ - 1] = value_index;
+        }
     }
 
     void LoudsDense::Iter::operator++(int) {

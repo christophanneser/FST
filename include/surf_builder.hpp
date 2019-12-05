@@ -287,6 +287,7 @@ inline void SuRFBuilder::determineCutoffLevel() {
 	dense_mem = computeDenseMem(cutoff_level);
 	sparse_mem = computeSparseMem(cutoff_level);
     }
+    //cutoff_level = 4;
     sparse_start_level_ = cutoff_level--;
 
     // CA build dense and sparse values vectors

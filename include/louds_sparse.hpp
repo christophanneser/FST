@@ -57,6 +57,8 @@ namespace surf {
 
             uint64_t getLastIteratorPosition() const;
 
+            void rankValuePosition(size_t pos);
+
             void operator++(int);
 
             void operator--(int);
@@ -233,6 +235,7 @@ namespace surf {
             if (!child_indicator_bits_->readBit(pos)) {
                 // CA todo: return value_index here
                 // pos - rank(S-HasChild, pos)
+                std::cout << "rank" << std::endl;
                 uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
                 value = values_sparse_[value_pos];
                 //std::cout << "value index for key " << key << ": "
@@ -269,10 +272,7 @@ namespace surf {
             if (!child_indicator_bits_->readBit(pos)) {
                 if (inclusive) { iter.is_valid_ = true; }
                 else { iter++; }
-                // todo initially rank value position
-                iter.value_pos_initialized_[iter.key_len_ - 1] = true;
-                uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-                iter.value_pos_[iter.key_len_ - 1] = value_pos;
+                iter.rankValuePosition(pos);
                 return true;
             }
             // move to child
@@ -483,14 +483,7 @@ namespace surf {
                 && !trie_->isEndofNode(pos))
                 is_at_terminator_ = true;
             is_valid_ = true;
-            // todo just increase value position here
-            if (value_pos_initialized_[key_len_ - 1]) {
-                value_pos_[key_len_ - 1]++;
-            } else {
-                value_pos_initialized_[key_len_ - 1] = true;
-                uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
-                value_pos_[key_len_ - 1] = value_pos;
-            }
+            rankValuePosition(pos);
             return;
         }
 
@@ -504,14 +497,7 @@ namespace surf {
                 if ((label == kTerminator)
                     && !trie_->isEndofNode(pos))
                     is_at_terminator_ = true;
-                // todo rank value position here
-                if (value_pos_initialized_[key_len_ - 1]) {
-                    value_pos_[key_len_ - 1]++;
-                } else {
-                    value_pos_initialized_[key_len_ - 1] = true;
-                    uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
-                    value_pos_[key_len_ - 1] = value_pos;
-                }
+                rankValuePosition(pos);
                 is_valid_ = true;
                 return;
             }
@@ -568,6 +554,16 @@ namespace surf {
         return pos_in_trie_[key_len_ - 1];
     };
 
+    void LoudsSparse::Iter::rankValuePosition(size_t pos) {
+        if (value_pos_initialized_[key_len_ - 1]) {
+            value_pos_[key_len_ - 1]++;
+        } else {
+            std::cout << "rank sparse" << std::endl;
+            value_pos_initialized_[key_len_ - 1] = true;
+            uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
+            value_pos_[key_len_ - 1] = value_pos;
+        }
+    }
 
     void LoudsSparse::Iter::operator++(int) {
         assert(key_len_ > 0);

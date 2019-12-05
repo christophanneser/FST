@@ -16,7 +16,7 @@ namespace surf {
 
         static const SuffixType kSuffixType = kReal;
         static const level_t kSuffixLen = 8;
-        static const uint32_t number_keys = 2500000;
+        static const uint32_t number_keys = 250000;
         static const uint32_t kIntTestSkip = 9;
 
         class SuRFInt32Test : public ::testing::Test {
