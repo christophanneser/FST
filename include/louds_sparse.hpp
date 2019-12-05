@@ -233,13 +233,8 @@ namespace surf {
 
             // if trie branch terminates
             if (!child_indicator_bits_->readBit(pos)) {
-                // CA todo: return value_index here
-                // pos - rank(S-HasChild, pos)
-                std::cout << "rank" << std::endl;
                 uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
                 value = values_sparse_[value_pos];
-                //std::cout << "value index for key " << key << ": "
-                //          << std::to_string(pos - child_indicator_bits_->rank(pos)) << std::endl;
                 return true;
             }
             // move to child
@@ -558,7 +553,6 @@ namespace surf {
         if (value_pos_initialized_[key_len_ - 1]) {
             value_pos_[key_len_ - 1]++;
         } else {
-            std::cout << "rank sparse" << std::endl;
             value_pos_initialized_[key_len_ - 1] = true;
             uint64_t value_pos = pos - trie_->child_indicator_bits_->rank(pos);
             value_pos_[key_len_ - 1] = value_pos;

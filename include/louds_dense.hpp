@@ -539,7 +539,6 @@ namespace surf {
         if (value_pos_initialized_[key_len_ - 1]) {
             value_pos_[key_len_ - 1]++;
         } else { // initially rank value position here
-            std::cout << "rank dense" << std::endl;
             value_pos_initialized_[key_len_ - 1] = true;
             uint64_t value_index = trie_->label_bitmaps_->rank(pos) - trie_->child_indicator_bitmaps_->rank(pos) -
                                    1; // + prefix but we do not support this so far

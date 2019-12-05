@@ -23,4 +23,5 @@ add_unit_test(test_surf_builder)
 add_unit_test(test_surf_small)
 add_unit_test(test_surf_ints)
 add_unit_test(test_surf_example)
+add_unit_test(test_surf_example_words)
 

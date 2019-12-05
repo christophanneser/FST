@@ -1,0 +1,83 @@
+#include "gtest/gtest.h"
+
+#include <assert.h>
+
+#include <string>
+#include <vector>
+
+#include "config.hpp"
+#include "surf.hpp"
+#include <cstdlib>
+#include <chrono>
+
+namespace surf {
+
+    namespace surftest {
+
+        static const std::string kFilePath = "../../../test/keys.txt";
+        static const int kTestSize = 234369;
+        static std::vector<std::string> words;
+
+        class SuRFExample : public ::testing::Test {
+        public:
+            void SetUp() override {
+                keys.emplace_back(std::string("abca"));
+                keys.emplace_back(std::string("abcb"));
+                keys.emplace_back(std::string("ac"));
+                keys.emplace_back(std::string("adef"));
+                keys.emplace_back(std::string("adeg"));
+                keys.emplace_back(std::string("aef"));
+                keys.emplace_back(std::string("aeg"));
+                keys.emplace_back(std::string("b"));
+
+                values_uint64.resize(keys.size());
+
+                // generate keys and values
+                for (size_t i = 0; i < values_uint64.size(); i++) {
+                    values_uint64[i] = i;
+                }
+            }
+
+            void loadWordList() {
+                std::ifstream infile(kFilePath);
+                std::string key;
+                int count = 0;
+                while (infile.good() && count < kTestSize) {
+                    infile >> key;
+                    words.push_back(key);
+                    count++;
+                }
+            }
+
+            void TearDown() override {}
+
+            std::vector<std::string> keys;
+            std::vector<uint64_t> values_uint64;
+        };
+
+
+        TEST_F (SuRFExample, IteratorTest) {
+            SuRF *surf = new SuRF(keys, values_uint64, kIncludeDense, 100);
+            auto iterators = surf->lookupRange("a", true, "b", false);
+            uint64_t i(0);
+            if (iterators.first.isValid())
+                i = iterators.first.getValue();
+            while (iterators.first != iterators.second) {
+                iterators.first.getValue();
+                std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
+                ASSERT_EQ(iterators.first.getValue(), i);
+                iterators.first++;
+                i++;
+            }
+            //if (iterators.second.isValid())
+            //    std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
+        }
+    } // namespace surftest
+
+
+} // namespace surf
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
