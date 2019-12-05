@@ -268,7 +268,7 @@ namespace surf {
                 return true; //compareSuffixGreaterThan(pos, key, level + 1, inclusive, iter);
             }
             // move to child
-            node_num = getChildNodeNum(pos);
+           node_num = getChildNodeNum(pos);
             pos = getFirstLabelPos(node_num);
         }
 
@@ -537,7 +537,7 @@ namespace surf {
     }
 
     uint64_t  LoudsSparse::Iter::getLastIteratorPosition() const {
-        return pos_in_trie_.back();
+        return pos_in_trie_[key_len_ - 1];
     };
 
 

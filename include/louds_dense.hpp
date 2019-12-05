@@ -512,7 +512,7 @@ namespace surf {
     }
 
     uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
-        return pos_in_trie_.back();
+        return pos_in_trie_[key_len_ - 1];
     }
 
     void LoudsDense::Iter::operator++(int) {
