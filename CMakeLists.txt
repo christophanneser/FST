@@ -37,17 +37,14 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 # ---------------------------------------------------------------------------
 
 # Gather lintable files
-set(SRC_CC_LINTING "")
-foreach(SRC_FILE ${SRC_CC})
-  list(FIND SRC_CC_LINTER_IGNORE "${SRC_FILE}" SRC_FILE_IDX)
-  if (${SRC_FILE_IDX} EQUAL -1)
-    list(APPEND SRC_CC_LINTING "${SRC_FILE}")
-  endif()
-endforeach()
+file(GLOB SRC_CC_LINTING
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/*"
+        )
 
 add_clang_tidy_target(lint_src "${SRC_CC_LINTING}")
 list(APPEND lint_targets lint_src)
 
+message(STATUS "SRC_CC_LINTING=${SRC_CC_LINTING}")
 
 add_custom_target(lint)
 add_dependencies(lint ${lint_targets})
