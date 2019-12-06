@@ -3,16 +3,22 @@ project (SuRF)
 
 message(STATUS "Configuring..." ${CMAKE_PROJECT_NAME})
 
+# ---------------------------------------------------------------------------
+# Include
+# ---------------------------------------------------------------------------
+
 include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-
-
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -Wall -mpopcnt -pthread -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall -Werror -mpopcnt -pthread -std=c++11")
+
+# ---------------------------------------------------------------------------
+# Code Coverage
+# ---------------------------------------------------------------------------
 
 option(COVERALLS "Generate coveralls data" OFF)
 
@@ -36,6 +42,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 # Linting
 # ---------------------------------------------------------------------------
 
+include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 # Gather lintable files
 file(GLOB SRC_CC_LINTING
         "${CMAKE_CURRENT_SOURCE_DIR}/include/*"
@@ -49,9 +56,17 @@ message(STATUS "SRC_CC_LINTING=${SRC_CC_LINTING}")
 add_custom_target(lint)
 add_dependencies(lint ${lint_targets})
 
+
+# ---------------------------------------------------------------------------
+# Test
+# ---------------------------------------------------------------------------
+
 add_subdirectory(test)
 
 
+# ---------------------------------------------------------------------------
+# Benchmarking
+# ---------------------------------------------------------------------------
 #add_subdirectory(bench)
 
 #include_directories("${CMAKE_CURRENT_SOURCE_DIR}/ARF/include")

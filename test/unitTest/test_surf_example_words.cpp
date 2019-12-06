@@ -58,6 +58,12 @@ namespace surf {
             std::chrono::duration<double> elapsed = finish - start;
             std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
 
+            uint64_t total_size(0);
+            for (auto const &element : map) {
+                total_size += element.first.size() + 8;
+
+            }
+            std::cout << "Size of map<string,uint64_t>: " << (total_size / (1024 * 1024)) << " MiB" << std::endl;
         }
 
         TEST_F (SuRFExample, IteratorTest) {
@@ -103,6 +109,9 @@ namespace surf {
 
             std::cout << "point lookup TP [M/s]: " << std::to_string(kTestSize * 1.00 / (elapsed.count() * 1000000))
                       << std::endl;
+
+            size_t surf_mib = surf->getMemoryUsage() / (1024 * 1024);
+            std::cout << surf_mib << " MiB" << std::endl;
 
         }
     } // namespace surftest

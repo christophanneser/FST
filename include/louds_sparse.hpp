@@ -7,7 +7,6 @@
 #include "label_vector.hpp"
 #include "rank.hpp"
 #include "select.hpp"
-#include "suffix.hpp"
 #include "surf_builder.hpp"
 
 namespace surf {
@@ -125,7 +124,6 @@ namespace surf {
             labels_->serialize(dst);
             child_indicator_bits_->serialize(dst);
             louds_bits_->serialize(dst);
-            suffixes_->serialize(dst);
             align(dst);
         }
 
@@ -143,7 +141,6 @@ namespace surf {
             louds_sparse->labels_ = LabelVector::deSerialize(src);
             louds_sparse->child_indicator_bits_ = BitvectorRank::deSerialize(src);
             louds_sparse->louds_bits_ = BitvectorSelect::deSerialize(src);
-            louds_sparse->suffixes_ = BitvectorSuffix::deSerialize(src);
             align(src);
             return louds_sparse;
         }
@@ -152,7 +149,6 @@ namespace surf {
             labels_->destroy();
             child_indicator_bits_->destroy();
             louds_bits_->destroy();
-            suffixes_->destroy();
         }
 
     private:
@@ -192,7 +188,6 @@ namespace surf {
         LabelVector *labels_;
         BitvectorRank *child_indicator_bits_;
         BitvectorSelect *louds_bits_;
-        BitvectorSuffix *suffixes_;
     };
 
 
@@ -242,8 +237,6 @@ namespace surf {
             node_num = getChildNodeNum(pos);
             pos = getFirstLabelPos(node_num);
         }
-        if ((labels_->read(pos) == kTerminator) && (!child_indicator_bits_->readBit(pos)))
-            return suffixes_->checkEquality(getSuffixPos(pos), key, level + 1);
         return false;
     }
 
@@ -301,8 +294,7 @@ namespace surf {
                         + sizeof(node_count_dense_) + sizeof(child_count_dense_)
                         + labels_->serializedSize()
                         + child_indicator_bits_->serializedSize()
-                        + louds_bits_->serializedSize()
-                        + suffixes_->serializedSize();
+                        + louds_bits_->serializedSize();
         sizeAlign(size);
         return size;
     }
@@ -311,8 +303,7 @@ namespace surf {
         return (sizeof(this)
                 + labels_->size()
                 + child_indicator_bits_->size()
-                + louds_bits_->size()
-                + suffixes_->size());
+                + louds_bits_->size());
     }
 
     position_t LoudsSparse::getChildNodeNum(const position_t pos) const {
@@ -386,8 +377,7 @@ namespace surf {
         int compare = iter_key.compare(key_sparse_same_length);
         if (compare != 0)
             return compare;
-        position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1]);
-        return trie_->suffixes_->compare(suffix_pos, key_sparse, key_len_);
+        return compare;
     }
 
     std::string LoudsSparse::Iter::getKey() const {
@@ -397,38 +387,6 @@ namespace surf {
         if (is_at_terminator_)
             len--;
         return std::string((const char *) key_.data(), (size_t) len);
-    }
-
-    int LoudsSparse::Iter::getSuffix(word_t *suffix) const {
-        if ((trie_->suffixes_->getType() == kReal) || (trie_->suffixes_->getType() == kMixed)) {
-            position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1]);
-            *suffix = trie_->suffixes_->readReal(suffix_pos);
-            return trie_->suffixes_->getRealSuffixLen();
-        }
-        *suffix = 0;
-        return 0;
-    }
-
-    std::string LoudsSparse::Iter::getKeyWithSuffix(unsigned *bitlen) const {
-        std::string iter_key = getKey();
-        if ((trie_->suffixes_->getType() == kReal) || (trie_->suffixes_->getType() == kMixed)) {
-            position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1]);
-            word_t suffix = trie_->suffixes_->readReal(suffix_pos);
-            if (suffix > 0) {
-                level_t suffix_len = trie_->suffixes_->getRealSuffixLen();
-                *bitlen = suffix_len % 8;
-                suffix <<= (64 - suffix_len);
-                char *suffix_str = reinterpret_cast<char *>(&suffix);
-                suffix_str += 7;
-                unsigned pos = 0;
-                while (pos < suffix_len) {
-                    iter_key.append(suffix_str, 1);
-                    suffix_str--;
-                    pos += 8;
-                }
-            }
-        }
-        return iter_key;
     }
 
     void LoudsSparse::Iter::append(const position_t pos) {

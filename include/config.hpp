@@ -24,14 +24,6 @@ static const label_t kTerminator = 255;
 
 static const int kHashShift = 7;
 
-static const int kCouldBePositive = 2018; // used in suffix comparison
-
-enum SuffixType {
-    kNone = 0,
-    kHash = 1,
-    kReal = 2,
-    kMixed = 3
-};
 
 void align(char*& ptr) {
     ptr = (char*)(((uint64_t)ptr + 7) & ~((uint64_t)7));

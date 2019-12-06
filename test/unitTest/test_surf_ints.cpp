@@ -14,7 +14,6 @@ namespace surf {
 
     namespace surftest {
 
-        static const SuffixType kSuffixType = kReal;
         static const level_t kSuffixLen = 8;
         static const uint32_t number_keys = 250000;
         static const uint32_t kIntTestSkip = 9;

@@ -8,7 +8,6 @@
 
 #include "config.hpp"
 #include "hash.hpp"
-#include "suffix.hpp"
 
 namespace surf {
 

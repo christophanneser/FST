@@ -12,9 +12,6 @@ namespace surf {
 
 namespace surftest {
 
-static const SuffixType kSuffixType = kReal;
-static const level_t kSuffixLen = 8;
-
 class SuRFInt32Test : public ::testing::Test {
 public:
     virtual void SetUp () {}
@@ -56,7 +53,7 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
         ASSERT_EQ(i, value);
     }
 
-    SuRF::Iter iter = surf->moveToKeyGreaterThan(std::string("t"), true);
+    SuRF::Iter iter = surf->moveToKeyGreaterThan(std::string("a"), true);
     ASSERT_TRUE(iter.isValid());
     iter++;
     ASSERT_TRUE(iter.isValid());

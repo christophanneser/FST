@@ -5,7 +5,6 @@
 
 #include "config.hpp"
 #include "rank.hpp"
-#include "suffix.hpp"
 #include "surf_builder.hpp"
 
 namespace surf {
@@ -143,7 +142,6 @@ namespace surf {
             label_bitmaps_->serialize(dst);
             child_indicator_bitmaps_->serialize(dst);
             prefixkey_indicator_bits_->serialize(dst);
-            suffixes_->serialize(dst);
             align(dst);
         }
 
@@ -155,7 +153,6 @@ namespace surf {
             louds_dense->label_bitmaps_ = BitvectorRank::deSerialize(src);
             louds_dense->child_indicator_bitmaps_ = BitvectorRank::deSerialize(src);
             louds_dense->prefixkey_indicator_bits_ = BitvectorRank::deSerialize(src);
-            louds_dense->suffixes_ = BitvectorSuffix::deSerialize(src);
             align(src);
             return louds_dense;
         }
@@ -164,7 +161,6 @@ namespace surf {
             label_bitmaps_->destroy();
             child_indicator_bitmaps_->destroy();
             prefixkey_indicator_bits_->destroy();
-            suffixes_->destroy();
         }
 
     private:
@@ -191,7 +187,6 @@ namespace surf {
         BitvectorRank *label_bitmaps_;
         BitvectorRank *child_indicator_bitmaps_;
         BitvectorRank *prefixkey_indicator_bits_; //1 bit per internal node
-        BitvectorSuffix *suffixes_;
     };
 
 
@@ -220,10 +215,7 @@ namespace surf {
         for (level_t level = 0; level < height_; level++) {
             pos = (node_num * kNodeFanout);
             if (level >= key.length()) { //if run out of searchKey bytes
-                if (prefixkey_indicator_bits_->readBit(node_num)) //if the prefix is also a key
-                    return suffixes_->checkEquality(getSuffixPos(pos, true), key, level + 1);
-                else
-                    return false;
+                return false;
             }
             pos += (label_t) key[level];
 
@@ -301,8 +293,7 @@ namespace surf {
         uint64_t size = sizeof(height_)
                         + label_bitmaps_->serializedSize()
                         + child_indicator_bitmaps_->serializedSize()
-                        + prefixkey_indicator_bits_->serializedSize()
-                        + suffixes_->serializedSize();
+                        + prefixkey_indicator_bits_->serializedSize();
         sizeAlign(size);
         return size;
     }
@@ -311,8 +302,7 @@ namespace surf {
         return (sizeof(LoudsDense)
                 + label_bitmaps_->size()
                 + child_indicator_bitmaps_->size()
-                + prefixkey_indicator_bits_->size()
-                + suffixes_->size());
+                + prefixkey_indicator_bits_->size());
     }
 
     position_t LoudsDense::getChildNodeNum(const position_t pos) const {
@@ -344,20 +334,6 @@ namespace surf {
         return (pos - distance);
     }
 
-    bool LoudsDense::compareSuffixGreaterThan(const position_t pos, const std::string &key,
-                                              const level_t level, const bool inclusive,
-                                              LoudsDense::Iter &iter) const {
-        position_t suffix_pos = getSuffixPos(pos, false);
-        int compare = suffixes_->compare(suffix_pos, key, level);
-        if ((compare != kCouldBePositive) && (compare < 0)) {
-            iter++;
-            return false;
-        }
-        // valid, search complete, moveLeft complete, moveRight complete
-        iter.setFlags(true, true, true, true);
-        return true;
-    }
-
 //============================================================================
 
     void LoudsDense::Iter::clear() {
@@ -373,10 +349,6 @@ namespace surf {
         std::string key_dense = key.substr(0, iter_key.length());
         int compare = iter_key.compare(key_dense);
         if (compare != 0) return compare;
-        if (isComplete()) {
-            position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1], is_at_prefix_key_);
-            return trie_->suffixes_->compare(suffix_pos, key, key_len_);
-        }
         return compare;
     }
 
@@ -387,40 +359,6 @@ namespace surf {
         if (is_at_prefix_key_)
             len--;
         return std::string((const char *) key_.data(), (size_t) len);
-    }
-
-    int LoudsDense::Iter::getSuffix(word_t *suffix) const {
-        if (isComplete()
-            && ((trie_->suffixes_->getType() == kReal) || (trie_->suffixes_->getType() == kMixed))) {
-            position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1], is_at_prefix_key_);
-            *suffix = trie_->suffixes_->readReal(suffix_pos);
-            return trie_->suffixes_->getRealSuffixLen();
-        }
-        *suffix = 0;
-        return 0;
-    }
-
-    std::string LoudsDense::Iter::getKeyWithSuffix(unsigned *bitlen) const {
-        std::string iter_key = getKey();
-        if (isComplete()
-            && ((trie_->suffixes_->getType() == kReal) || (trie_->suffixes_->getType() == kMixed))) {
-            position_t suffix_pos = trie_->getSuffixPos(pos_in_trie_[key_len_ - 1], is_at_prefix_key_);
-            word_t suffix = trie_->suffixes_->readReal(suffix_pos);
-            if (suffix > 0) {
-                level_t suffix_len = trie_->suffixes_->getRealSuffixLen();
-                *bitlen = suffix_len % 8;
-                suffix <<= (64 - suffix_len);
-                char *suffix_str = reinterpret_cast<char *>(&suffix);
-                suffix_str += 7;
-                unsigned pos = 0;
-                while (pos < suffix_len) {
-                    iter_key.append(suffix_str, 1);
-                    suffix_str--;
-                    pos += 8;
-                }
-            }
-        }
-        return iter_key;
     }
 
     void LoudsDense::Iter::append(position_t pos) {

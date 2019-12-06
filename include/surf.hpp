@@ -336,23 +336,6 @@ namespace surf {
         return dense_iter_.getKey() + sparse_iter_.getKey();
     }
 
-    int SuRF::Iter::getSuffix(word_t *suffix) const {
-        if (!isValid())
-            return 0;
-        if (dense_iter_.isComplete())
-            return dense_iter_.getSuffix(suffix);
-        return sparse_iter_.getSuffix(suffix);
-    }
-
-    std::string SuRF::Iter::getKeyWithSuffix(unsigned *bitlen) const {
-        *bitlen = 0;
-        if (!isValid())
-            return std::string();
-        if (dense_iter_.isComplete())
-            return dense_iter_.getKeyWithSuffix(bitlen);
-        return dense_iter_.getKeyWithSuffix(bitlen) + sparse_iter_.getKeyWithSuffix(bitlen);
-    }
-
     void SuRF::Iter::passToSparse() {
         sparse_iter_.setStartNodeNum(dense_iter_.getSendOutNodeNum());
     }
