@@ -16,7 +16,8 @@ namespace surf {
     public:
         class Iter {
         public:
-            Iter() : is_valid_(false) {};
+            Iter() : is_valid_(false),  trie_(0),  start_level_(0), start_node_num_(0),
+                     key_len_(0), is_at_terminator_(false) {};
 
             Iter(LoudsSparse *trie) : is_valid_(false), trie_(trie), start_node_num_(0),
                                       key_len_(0), is_at_terminator_(false) {

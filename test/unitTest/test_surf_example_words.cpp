@@ -1,52 +1,41 @@
 #include "gtest/gtest.h"
-
-#include <assert.h>
-
 #include <string>
 #include <vector>
-
 #include "config.hpp"
 #include "surf.hpp"
-#include <cstdlib>
 #include <chrono>
+#include <fstream>
 
 namespace surf {
 
     namespace surftest {
 
         static const std::string kFilePath = "../../../test/keys.txt";
-        static const int kTestSize = 234369;
-        static std::vector<std::string> words;
+        static const int kTestSize = 64404590;
 
         class SuRFExample : public ::testing::Test {
         public:
             void SetUp() override {
-                keys.emplace_back(std::string("abca"));
-                keys.emplace_back(std::string("abcb"));
-                keys.emplace_back(std::string("ac"));
-                keys.emplace_back(std::string("adef"));
-                keys.emplace_back(std::string("adeg"));
-                keys.emplace_back(std::string("aef"));
-                keys.emplace_back(std::string("aeg"));
-                keys.emplace_back(std::string("b"));
-
-                values_uint64.resize(keys.size());
-
-                // generate keys and values
-                for (size_t i = 0; i < values_uint64.size(); i++) {
-                    values_uint64[i] = i;
-                }
+                keys.resize(kTestSize);
+                values_uint64.resize(kTestSize);
+                loadWordList();
             }
 
             void loadWordList() {
+                auto start = std::chrono::high_resolution_clock::now();
                 std::ifstream infile(kFilePath);
                 std::string key;
                 int count = 0;
                 while (infile.good() && count < kTestSize) {
                     infile >> key;
-                    words.push_back(key);
+                    keys[count] = key;
+                    values_uint64[count] = count;
                     count++;
                 }
+                auto finish = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> elapsed = finish - start;
+                std::cout << "read keys in " << std::to_string(elapsed.count()) << " seconds" << std::endl;
+
             }
 
             void TearDown() override {}
@@ -55,25 +44,69 @@ namespace surf {
             std::vector<uint64_t> values_uint64;
         };
 
+        TEST_F (SuRFExample, MapTest) {
+
+            std::vector<std::pair<std::string, uint64_t >> initializer_list(keys.size());
+
+            for (auto i = 0u; i < keys.size(); i++) {
+                initializer_list.emplace_back(std::make_pair(keys[i], values_uint64[i]));
+            }
+
+            auto start = std::chrono::high_resolution_clock::now();
+            std::map<std::string, uint64_t> map(initializer_list.begin(), initializer_list.end());
+            auto finish = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = finish - start;
+            std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
+
+        }
 
         TEST_F (SuRFExample, IteratorTest) {
-            SuRF *surf = new SuRF(keys, values_uint64, kIncludeDense, 100);
-            auto iterators = surf->lookupRange("a", true, "b", false);
+
+            // build fst
+            auto start = std::chrono::high_resolution_clock::now();
+            SuRF *surf = new SuRF(keys, values_uint64, kIncludeDense, 16);
+            auto finish = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = finish - start;
+            std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
+
+            // query fst range
+            start = std::chrono::high_resolution_clock::now();
+            auto iterators = surf->lookupRange(keys.front(), true, keys.back(), true);
             uint64_t i(0);
-            if (iterators.first.isValid())
-                i = iterators.first.getValue();
+
             while (iterators.first != iterators.second) {
-                iterators.first.getValue();
-                std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
+                //std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
                 ASSERT_EQ(iterators.first.getValue(), i);
                 iterators.first++;
                 i++;
             }
-            //if (iterators.second.isValid())
-            //    std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
+
+            finish = std::chrono::high_resolution_clock::now();
+            elapsed = finish - start;
+
+            std::cout << "range lookup TP [M/s]: " << std::to_string(kTestSize * 1.00 / (elapsed.count() * 1000000))
+                      << std::endl;
+
+
+            // query fst key lookup
+            start = std::chrono::high_resolution_clock::now();
+
+            i = 0;
+            uint64_t value = -1;
+            while (i < keys.size()) {
+                surf->lookupKey(keys[i], value);
+                ASSERT_EQ(value, values_uint64[i]);
+                i++;
+            }
+
+            finish = std::chrono::high_resolution_clock::now();
+            elapsed = finish - start;
+
+            std::cout << "point lookup TP [M/s]: " << std::to_string(kTestSize * 1.00 / (elapsed.count() * 1000000))
+                      << std::endl;
+
         }
     } // namespace surftest
-
 
 } // namespace surf
 

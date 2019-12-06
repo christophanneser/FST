@@ -14,7 +14,12 @@ namespace surf {
     public:
         class Iter {
         public:
-            Iter() : is_valid_(false) {};
+            Iter() : is_valid_(false), is_search_complete_(false),
+                     is_move_left_complete_(false),
+                     is_move_right_complete_(false),
+                     trie_(new LoudsDense()),
+                     send_out_node_num_(0), key_len_(0),
+                     is_at_prefix_key_(false) {};
 
             explicit Iter(LoudsDense *trie) : is_valid_(false), is_search_complete_(false),
                                               is_move_left_complete_(false),
@@ -535,7 +540,7 @@ namespace surf {
         return trie_->values_dense_[value_pos_[key_len_ - 1]];
     }
 
-    void LoudsDense::Iter::rankValuePosition(size_t pos){
+    void LoudsDense::Iter::rankValuePosition(size_t pos) {
         if (value_pos_initialized_[key_len_ - 1]) {
             value_pos_[key_len_ - 1]++;
         } else { // initially rank value position here
