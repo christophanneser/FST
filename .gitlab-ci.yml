@@ -1,0 +1,52 @@
+stages:
+    - build
+    - test
+    - cleanup
+
+make:
+    stage: build
+    script: 
+        - mkdir -p build
+        - cd build
+        - cmake -DCMAKE_BUILD_TYPE=Debug ..
+        - make
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - build/vendor/
+        policy: pull-push
+    tags:
+        - "clang-5.0"
+        - "cmake"
+        - "python3"
+
+tester:
+    stage: test
+    script:
+        - cd build
+        - ./tester --gtest_filter='-*Advanced*:*Multithread*'
+
+multithread_tester:
+    stage: test
+    script:
+        - cd build
+        - timeout -s INT 30s ./tester --gtest_filter='*Multithread*'
+
+lint:
+    stage: test
+    script:
+        - mkdir -p build
+        - cd build
+        - cmake -DCMAKE_BUILD_TYPE=Debug ..
+        - make lint
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - build/vendor/
+        policy: pull-push
+    tags:
+        - "clang-5.0"
+        - "clang-tidy-5.0"
+        - "cmake"
+        - "python3"
+    allow_failure: true
