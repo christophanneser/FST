@@ -29,7 +29,7 @@ enable_testing()
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_subdirectory(test)
-add_subdirectory(bench)
+#add_subdirectory(bench)
 
 #include_directories("${CMAKE_CURRENT_SOURCE_DIR}/ARF/include")
 #add_subdirectory(ARF)
