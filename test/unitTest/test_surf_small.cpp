@@ -47,7 +47,7 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
     std::vector<uint64_t > values;
     for (uint64_t i = 0; i < keys.size(); i++) values.emplace_back(i);
 
-    SuRF* surf = new SuRF(keys, values, kIncludeDense, kSparseDenseRatio, kSuffixType, 0, kSuffixLen);
+    SuRF* surf = new SuRF(keys, values, kIncludeDense, kSparseDenseRatio);
 
     for (uint64_t i = 0; i < values.size(); i++) {
         uint64_t value = 0;

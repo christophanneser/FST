@@ -75,7 +75,6 @@ namespace surf {
             uint64_t i(0);
 
             while (iterators.first != iterators.second) {
-                //std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
                 ASSERT_EQ(iterators.first.getValue(), i);
                 iterators.first++;
                 i++;
