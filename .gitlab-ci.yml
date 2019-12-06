@@ -16,9 +16,8 @@ make:
             - build/vendor/
         policy: pull-push
     tags:
-        - "clang-5.0"
+        - "clang-6.0"
         - "cmake"
-        - "python3"
 
 tester:
     stage: test
