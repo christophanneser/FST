@@ -7,7 +7,7 @@
 
 #include "config.hpp"
 
-namespace surf {
+namespace fst {
 
 class LabelVector {
 public:
@@ -216,6 +216,6 @@ bool LabelVector::linearSearchGreaterThan(const label_t target, position_t& pos,
     return false;
 }
 
-} // namespace surf
+} // namespace fst
 
 #endif // LABELVECTOR_H_

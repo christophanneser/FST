@@ -9,7 +9,7 @@
 #include "config.hpp"
 #include "hash.hpp"
 
-namespace surf {
+namespace fst {
 
 class SuRFBuilder {
 public: 
@@ -22,7 +22,7 @@ public:
 
     // Fills in the LOUDS-dense and sparse vectors (members of this class)
     // through a single scan of the sorted key list.
-    // After build, the member vectors are used in SuRF constructor.
+    // After build, the member vectors are used in FST constructor.
     // REQUIRED: provided key list must be sorted.
     void build(const std::vector<std::string>& keys, const std::vector<uint64_t >& values );
 
@@ -391,6 +391,6 @@ bool SuRFBuilder::isTerminator(const level_t level, const position_t pos) const 
     return ((label == kTerminator) && !readBit(child_indicator_bits_[level], pos));
 }
 
-} // namespace surf
+} // namespace fst
 
 #endif // SURFBUILDER_H_

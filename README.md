@@ -1,12 +1,12 @@
-# Succinct Range Filter (SuRF)
-[![Build Status](https://travis-ci.org/efficient/SuRF.svg?branch=master)](https://travis-ci.org/efficient/SuRF)
-[![Coverage Status](https://coveralls.io/repos/github/efficient/SuRF/badge.svg?branch=master)](https://coveralls.io/github/efficient/SuRF?branch=master)
+# Succinct Range Filter (FST)
+[![Build Status](https://travis-ci.org/efficient/FST.svg?branch=master)](https://travis-ci.org/efficient/FST)
+[![Coverage Status](https://coveralls.io/repos/github/efficient/FST/badge.svg?branch=master)](https://coveralls.io/github/efficient/FST?branch=master)
 
-**SuRF** is a fast and compact filter that provides exact-match filtering,
+**FST** is a fast and compact filter that provides exact-match filtering,
 range filtering, and approximate range counts. This is the source code for our
 [SIGMOD best paper](http://www.cs.cmu.edu/~huanche1/publications/surf_paper.pdf).
 We also host a [demo website](https://www.rangefilter.io/).
-The RocksDB experiments with SuRF can be found [here](https://github.com/efficient/rocksdb).
+The RocksDB experiments with FST can be found [here](https://github.com/efficient/rocksdb).
 
 ## Install Dependencies
     sudo apt-get install build-essential cmake libgtest.dev
@@ -24,12 +24,12 @@ The RocksDB experiments with SuRF can be found [here](https://github.com/efficie
     make -j
 
 ## Simple Example
-A simple example can be found [here](https://github.com/efficient/SuRF/blob/master/simple_example.cpp). To run the example:
+A simple example can be found [here](https://github.com/efficient/FST/blob/master/simple_example.cpp). To run the example:
 ```
 g++ -mpopcnt -std=c++11 simple_example.cpp
 ./a.out
 ```
-Note that the key list passed to the SuRF constructor must be SORTED.
+Note that the key list passed to the FST constructor must be SORTED.
 
 ## Run Unit Tests
     make test
@@ -55,4 +55,4 @@ and `bench/workload_arf.cpp` for more experiment configurations.
 ## License
 Copyright 2018, Carnegie Mellon University
 
-Licensed under the [Apache License](https://github.com/efficient/SuRF/blob/master/LICENSE).
+Licensed under the [Apache License](https://github.com/efficient/FST/blob/master/LICENSE).

@@ -7,9 +7,9 @@
 #include "label_vector.hpp"
 #include "rank.hpp"
 #include "select.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
-namespace surf {
+namespace fst {
 
     class LoudsSparse {
     public:
@@ -559,6 +559,6 @@ namespace surf {
         return moveToRightMostKey();
     }
 
-} // namespace surf
+} // namespace fst
 
 #endif // LOUDSSPARSE_H_

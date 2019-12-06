@@ -6,9 +6,9 @@
 #include <vector>
 
 #include "config.hpp"
-#include "surf.hpp"
+#include "fst.hpp"
 
-namespace surf {
+namespace fst {
 
 namespace surftest {
 
@@ -44,7 +44,7 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
     std::vector<uint64_t > values;
     for (uint64_t i = 0; i < keys.size(); i++) values.emplace_back(i);
 
-    SuRF* surf = new SuRF(keys, values, kIncludeDense, kSparseDenseRatio);
+    FST* surf = new FST(keys, values, kIncludeDense, kSparseDenseRatio);
 
     for (uint64_t i = 0; i < values.size(); i++) {
         uint64_t value = 0;
@@ -53,7 +53,7 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
         ASSERT_EQ(i, value);
     }
 
-    SuRF::Iter iter = surf->moveToKeyGreaterThan(std::string("a"), true);
+    FST::Iter iter = surf->moveToKeyGreaterThan(std::string("a"), true);
     ASSERT_TRUE(iter.isValid());
     iter++;
     ASSERT_TRUE(iter.isValid());
@@ -61,7 +61,7 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
 
 } // namespace surftest
 
-} // namespace surf
+} // namespace fst
 
 int main (int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

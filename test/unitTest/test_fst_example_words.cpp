@@ -2,11 +2,11 @@
 #include <string>
 #include <vector>
 #include "config.hpp"
-#include "surf.hpp"
+#include "fst.hpp"
 #include <chrono>
 #include <fstream>
 
-namespace surf {
+namespace fst {
 
     namespace surftest {
 
@@ -45,7 +45,6 @@ namespace surf {
         };
 
         TEST_F (SuRFExample, MapTest) {
-
             std::vector<std::pair<std::string, uint64_t >> initializer_list(keys.size());
 
             for (auto i = 0u; i < keys.size(); i++) {
@@ -67,10 +66,9 @@ namespace surf {
         }
 
         TEST_F (SuRFExample, IteratorTest) {
-
             // build fst
             auto start = std::chrono::high_resolution_clock::now();
-            SuRF *surf = new SuRF(keys, values_uint64, kIncludeDense, 16);
+            FST *surf = new FST(keys, values_uint64, kIncludeDense, 16);
             auto finish = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = finish - start;
             std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
@@ -112,11 +110,10 @@ namespace surf {
 
             size_t surf_mib = surf->getMemoryUsage() / (1024 * 1024);
             std::cout << surf_mib << " MiB" << std::endl;
-
         }
     } // namespace surftest
 
-} // namespace surf
+} // namespace fst
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

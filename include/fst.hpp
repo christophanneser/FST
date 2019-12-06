@@ -7,17 +7,17 @@
 #include "config.hpp"
 #include "louds_dense.hpp"
 #include "louds_sparse.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
-namespace surf {
+namespace fst {
 
-    class SuRF {
+    class FST {
     public:
         class Iter {
         public:
             Iter() {};
 
-            Iter(const SuRF *filter) {
+            Iter(const FST *filter) {
                 dense_iter_ = LoudsDense::Iter(filter->louds_dense_);
                 sparse_iter_ = LoudsSparse::Iter(filter->louds_sparse_);
                 could_be_fp_ = false;
@@ -34,10 +34,6 @@ namespace surf {
             uint64_t getValue() const;
 
             std::string getKey() const;
-
-            int getSuffix(word_t *suffix) const;
-
-            std::string getKeyWithSuffix(unsigned *bitlen) const;
 
             // Returns true if the status of the iterator after the operation is valid
             bool operator++(int);
@@ -63,25 +59,25 @@ namespace surf {
             LoudsSparse::Iter sparse_iter_;
             bool could_be_fp_;
 
-            friend class SuRF;
+            friend class FST;
         };
 
     public:
-        SuRF() {};
+        FST() {};
 
         //------------------------------------------------------------------
         // Input keys must be SORTED
         //------------------------------------------------------------------
-        SuRF(const std::vector<std::string> &keys, const std::vector<uint64_t> &values) {
+        FST(const std::vector<std::string> &keys, const std::vector<uint64_t> &values) {
             create(keys, values, kIncludeDense, kSparseDenseRatio);
         }
 
-        SuRF(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
-             const bool include_dense, const uint32_t sparse_dense_ratio) {
+        FST(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
+            const bool include_dense, const uint32_t sparse_dense_ratio) {
             create(keys, values, include_dense, sparse_dense_ratio);
         }
 
-        ~SuRF() {}
+        ~FST() {}
 
         void create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values, bool include_dense,
                     uint32_t sparse_dense_ratio);
@@ -90,16 +86,16 @@ namespace surf {
 
         // This function searches in a conservative way: if inclusive is true
         // and the stored key prefix matches key, iter stays at this key prefix.
-        SuRF::Iter moveToKeyGreaterThan(const std::string &key, bool inclusive) const;
+        FST::Iter moveToKeyGreaterThan(const std::string &key, bool inclusive) const;
 
-        SuRF::Iter moveToKeyLessThan(const std::string &key, bool inclusive) const;
+        FST::Iter moveToKeyLessThan(const std::string &key, bool inclusive) const;
 
-        SuRF::Iter moveToFirst() const;
+        FST::Iter moveToFirst() const;
 
-        SuRF::Iter moveToLast() const;
+        FST::Iter moveToLast() const;
 
-        std::pair<SuRF::Iter, SuRF::Iter> lookupRange(const std::string &left_key, bool left_inclusive,
-                                                      const std::string &right_key, bool right_inclusive);
+        std::pair<FST::Iter, FST::Iter> lookupRange(const std::string &left_key, bool left_inclusive,
+                                                    const std::string &right_key, bool right_inclusive);
 
         uint64_t serializedSize() const;
 
@@ -119,11 +115,11 @@ namespace surf {
             return data;
         }
 
-        static SuRF *deSerialize(char *src) {
-            SuRF *surf = new SuRF();
+        static FST *deSerialize(char *src) {
+            FST *surf = new FST();
             surf->louds_dense_ = LoudsDense::deSerialize(src);
             surf->louds_sparse_ = LoudsSparse::deSerialize(src);
-            surf->iter_ = SuRF::Iter(surf);
+            surf->iter_ = FST::Iter(surf);
             return surf;
         }
 
@@ -136,22 +132,22 @@ namespace surf {
         LoudsDense *louds_dense_;
         LoudsSparse *louds_sparse_;
         SuRFBuilder *builder_;
-        SuRF::Iter iter_;
-        SuRF::Iter end_;
+        FST::Iter iter_;
+        FST::Iter end_;
     };
 
-    void SuRF::create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
-                      const bool include_dense, const uint32_t sparse_dense_ratio) {
+    void FST::create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
+                     const bool include_dense, const uint32_t sparse_dense_ratio) {
         // todo where to store the values?
         builder_ = new SuRFBuilder(include_dense, sparse_dense_ratio);
         builder_->build(keys, values);
         louds_dense_ = new LoudsDense(builder_);
         louds_sparse_ = new LoudsSparse(builder_);
-        iter_ = SuRF::Iter(this);
+        iter_ = FST::Iter(this);
         delete builder_;
     }
 
-    bool SuRF::lookupKey(const std::string &key, uint64_t &value) const {
+    bool FST::lookupKey(const std::string &key, uint64_t &value) const {
         position_t connect_node_num = 0;
         if (!louds_dense_->lookupKey(key, connect_node_num, value))
             return false;
@@ -160,8 +156,8 @@ namespace surf {
         return true;
     }
 
-    SuRF::Iter SuRF::moveToKeyGreaterThan(const std::string &key, const bool inclusive) const {
-        SuRF::Iter iter(this);
+    FST::Iter FST::moveToKeyGreaterThan(const std::string &key, const bool inclusive) const {
+        FST::Iter iter(this);
         iter.could_be_fp_ = louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
 
         if (!iter.dense_iter_.isValid())
@@ -185,8 +181,8 @@ namespace surf {
         return iter;
     }
 
-    SuRF::Iter SuRF::moveToKeyLessThan(const std::string &key, const bool inclusive) const {
-        SuRF::Iter iter = moveToKeyGreaterThan(key, false);
+    FST::Iter FST::moveToKeyLessThan(const std::string &key, const bool inclusive) const {
+        FST::Iter iter = moveToKeyGreaterThan(key, false);
         if (!iter.isValid()) {
             iter = moveToLast();
             return iter;
@@ -200,8 +196,8 @@ namespace surf {
         return iter;
     }
 
-    SuRF::Iter SuRF::moveToFirst() const {
-        SuRF::Iter iter(this);
+    FST::Iter FST::moveToFirst() const {
+        FST::Iter iter(this);
         if (louds_dense_->getHeight() > 0) {
             iter.dense_iter_.setToFirstLabelInRoot();
             iter.dense_iter_.moveToLeftMostKey();
@@ -216,8 +212,8 @@ namespace surf {
         return iter;
     }
 
-    SuRF::Iter SuRF::moveToLast() const {
-        SuRF::Iter iter(this);
+    FST::Iter FST::moveToLast() const {
+        FST::Iter iter(this);
         if (louds_dense_->getHeight() > 0) {
             iter.dense_iter_.setToLastLabelInRoot();
             iter.dense_iter_.moveToRightMostKey();
@@ -232,8 +228,8 @@ namespace surf {
         return iter;
     }
 
-    std::pair<SuRF::Iter, SuRF::Iter> SuRF::lookupRange(const std::string &left_key, const bool left_inclusive,
-                                                        const std::string &right_key, const bool right_inclusive) {
+    std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key, const bool left_inclusive,
+                                                     const std::string &right_key, const bool right_inclusive) {
 
         auto begin_iter = moveToKeyGreaterThan(left_key, left_inclusive);
         auto end_iter = moveToKeyGreaterThan(right_key, true);
@@ -253,67 +249,42 @@ namespace surf {
         }
 
         return {begin_iter, end_iter};
-        /*
-        iter_.clear();
-        louds_dense_->moveToKeyGreaterThan(left_key, left_inclusive, iter_.dense_iter_);
-        if (!iter_.dense_iter_.isValid()) return false;
-        if (!iter_.dense_iter_.isComplete()) {
-            if (!iter_.dense_iter_.isSearchComplete()) {
-                iter_.passToSparse();
-                louds_sparse_->moveToKeyGreaterThan(left_key, left_inclusive, iter_.sparse_iter_);
-                if (!iter_.sparse_iter_.isValid()) {
-                    iter_.incrementDenseIter();
-                }
-            } else if (!iter_.dense_iter_.isMoveLeftComplete()) {
-                iter_.passToSparse();
-                iter_.sparse_iter_.moveToLeftMostKey();
-            }
-        }
-        if (!iter_.isValid()) return false;
-        int compare = iter_.compare(right_key);
-        if (compare == kCouldBePositive)
-            return true;
-        if (right_inclusive)
-            return (compare <= 0);
-        else
-            return (compare < 0);
-        */
     }
 
-    uint64_t SuRF::serializedSize() const {
+    uint64_t FST::serializedSize() const {
         return (louds_dense_->serializedSize()
                 + louds_sparse_->serializedSize());
     }
 
-    uint64_t SuRF::getMemoryUsage() const {
-        return (sizeof(SuRF) + louds_dense_->getMemoryUsage() + louds_sparse_->getMemoryUsage());
+    uint64_t FST::getMemoryUsage() const {
+        return (sizeof(FST) + louds_dense_->getMemoryUsage() + louds_sparse_->getMemoryUsage());
     }
 
-    level_t SuRF::getHeight() const {
+    level_t FST::getHeight() const {
         return louds_sparse_->getHeight();
     }
 
-    level_t SuRF::getSparseStartLevel() const {
+    level_t FST::getSparseStartLevel() const {
         return louds_sparse_->getStartLevel();
     }
 
 //============================================================================
 
-    void SuRF::Iter::clear() {
+    void FST::Iter::clear() {
         dense_iter_.clear();
         sparse_iter_.clear();
     }
 
-    bool SuRF::Iter::getFpFlag() const {
+    bool FST::Iter::getFpFlag() const {
         return could_be_fp_;
     }
 
-    bool SuRF::Iter::isValid() const {
+    bool FST::Iter::isValid() const {
         return dense_iter_.isValid()
                && (dense_iter_.isComplete() || sparse_iter_.isValid());
     }
 
-    int SuRF::Iter::compare(const std::string &key) const {
+    int FST::Iter::compare(const std::string &key) const {
         assert(isValid());
         int dense_compare = dense_iter_.compare(key);
         if (dense_iter_.isComplete() || dense_compare != 0)
@@ -321,14 +292,14 @@ namespace surf {
         return sparse_iter_.compare(key);
     }
 
-    uint64_t SuRF::Iter::getValue() const {
+    uint64_t FST::Iter::getValue() const {
         if (dense_iter_.isComplete())
             return dense_iter_.getValue();
         return sparse_iter_.getValue();
     }
 
 
-    std::string SuRF::Iter::getKey() const {
+    std::string FST::Iter::getKey() const {
         if (!isValid())
             return std::string();
         if (dense_iter_.isComplete())
@@ -336,11 +307,11 @@ namespace surf {
         return dense_iter_.getKey() + sparse_iter_.getKey();
     }
 
-    void SuRF::Iter::passToSparse() {
+    void FST::Iter::passToSparse() {
         sparse_iter_.setStartNodeNum(dense_iter_.getSendOutNodeNum());
     }
 
-    bool SuRF::Iter::incrementDenseIter() {
+    bool FST::Iter::incrementDenseIter() {
         if (!dense_iter_.isValid())
             return false;
 
@@ -355,14 +326,14 @@ namespace surf {
         return true;
     }
 
-    bool SuRF::Iter::incrementSparseIter() {
+    bool FST::Iter::incrementSparseIter() {
         if (!sparse_iter_.isValid())
             return false;
         sparse_iter_++;
         return sparse_iter_.isValid();
     }
 
-    bool SuRF::Iter::operator++(int) {
+    bool FST::Iter::operator++(int) {
         if (!isValid())
             return false;
         if (incrementSparseIter())
@@ -370,7 +341,7 @@ namespace surf {
         return incrementDenseIter();
     }
 
-    bool SuRF::Iter::decrementDenseIter() {
+    bool FST::Iter::decrementDenseIter() {
         if (!dense_iter_.isValid())
             return false;
 
@@ -385,14 +356,14 @@ namespace surf {
         return true;
     }
 
-    bool SuRF::Iter::decrementSparseIter() {
+    bool FST::Iter::decrementSparseIter() {
         if (!sparse_iter_.isValid())
             return false;
         sparse_iter_--;
         return sparse_iter_.isValid();
     }
 
-    bool SuRF::Iter::operator--(int) {
+    bool FST::Iter::operator--(int) {
         if (!isValid())
             return false;
         if (decrementSparseIter())
@@ -400,7 +371,7 @@ namespace surf {
         return decrementDenseIter();
     }
 
-    bool SuRF::Iter::operator!=(const SuRF::Iter &other) {
+    bool FST::Iter::operator!=(const FST::Iter &other) {
         //compare two iterators
 
         // both iterators invalid
@@ -426,6 +397,6 @@ namespace surf {
 
     }
 
-} // namespace surf
+} // namespace fst
 
 #endif // SURF_H

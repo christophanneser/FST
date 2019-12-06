@@ -8,7 +8,7 @@
 
 #include "config.hpp"
 #include "rank.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
 namespace surf {
 

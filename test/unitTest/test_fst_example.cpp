@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "config.hpp"
-#include "surf.hpp"
+#include "fst.hpp"
 #include <cstdlib>
 #include <chrono>
 
-namespace surf {
+namespace fst {
 
     namespace surftest {
 
@@ -43,7 +43,7 @@ namespace surf {
 
 
         TEST_F (SuRFExample, IteratorTest) {
-            SuRF *surf = new SuRF(keys, values_uint64, kIncludeDense, 100);
+            FST *surf = new FST(keys, values_uint64, kIncludeDense, 100);
             auto iterators = surf->lookupRange("a", true, "b", false);
             uint64_t i(0);
             if (iterators.first.isValid())
@@ -61,7 +61,7 @@ namespace surf {
     } // namespace surftest
 
 
-} // namespace surf
+} // namespace fst
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

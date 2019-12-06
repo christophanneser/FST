@@ -9,7 +9,7 @@
 
 #include "popcount.h"
 
-namespace surf {
+namespace fst {
 
 class BitvectorRank : public Bitvector {
 public:
@@ -108,6 +108,6 @@ private:
     position_t* rank_lut_; //rank look-up table
 };
 
-} // namespace surf
+} // namespace fst
 
 #endif // RANK_H_

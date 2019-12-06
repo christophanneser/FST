@@ -8,7 +8,7 @@
 
 #include "bitvector.hpp"
 #include "config.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
 namespace surf {
 

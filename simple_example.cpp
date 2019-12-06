@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-#include "include/surf.hpp"
+#include "fst.hpp"
 
 using namespace surf;
 

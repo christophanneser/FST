@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-namespace surf {
+namespace fst {
 
 using level_t = uint32_t;
 using position_t = uint32_t;
@@ -54,6 +54,6 @@ uint64_t stringToUint64(const std::string& str_word) {
     return __builtin_bswap64(int_word);
 }
 
-} // namespace surf
+} // namespace fst
 
 #endif // CONFIG_H_

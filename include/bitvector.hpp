@@ -7,7 +7,7 @@
 
 #include "config.hpp"
 
-namespace surf {
+namespace fst {
 
 class Bitvector {
 public:
@@ -169,6 +169,6 @@ void Bitvector::concatenateBitvectors(const std::vector<std::vector<word_t> >& b
     }
 }
 
-} // namespace surf
+} // namespace fst
 
 #endif // BITVECTOR_H_

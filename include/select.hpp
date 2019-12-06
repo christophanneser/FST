@@ -10,7 +10,7 @@
 #include "config.hpp"
 #include "popcount.h"
 
-namespace surf {
+namespace fst {
 
 class BitvectorSelect : public Bitvector {
 public:
@@ -155,6 +155,6 @@ private:
     position_t* select_lut_; //select look-up table
 };
 
-} // namespace surf
+} // namespace fst
 
 #endif // SELECT_H_

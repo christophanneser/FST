@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "config.hpp"
-#include "surf.hpp"
+#include "fst.hpp"
 #include <cstdlib>
 #include <chrono>
 
-namespace surf {
+namespace fst {
 
     namespace surftest {
 
@@ -47,7 +47,7 @@ namespace surf {
 
         TEST_F (SuRFInt32Test, PointLookupTests) {
             auto start = std::chrono::high_resolution_clock::now();
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             auto finish = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = finish - start;
             std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
@@ -67,9 +67,9 @@ namespace surf {
         }
 
         TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = 7234;
-            SuRF::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
+            FST::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
             for (; start_position < keys_int32.size(); start_position++) {
                 ASSERT_TRUE(iter.isValid());
                 ASSERT_EQ(keys_int32[start_position].compare( iter.getKey()), 0);
@@ -79,9 +79,9 @@ namespace surf {
         }
 
         TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = 7234;
-            SuRF::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position], true);
+            FST::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position], true);
             for (; start_position < keys_int32.size(); start_position++) {
                 ASSERT_TRUE(iter.isValid());
                 ASSERT_EQ(keys_int32[start_position].compare( iter.getKey()), 0);
@@ -91,7 +91,7 @@ namespace surf {
         }
 
         TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = 7234;
             size_t end_position = 7235;
             auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
@@ -107,7 +107,7 @@ namespace surf {
 
 
         TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = 7234;
             size_t end_position = 7235;
             auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
@@ -140,7 +140,7 @@ namespace surf {
         }
 
         TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = keys_int32.size() - 10;
             size_t end_position = keys_int32.size() - 1;
             auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
@@ -168,7 +168,7 @@ namespace surf {
         }
 
         TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
-            SuRF *surf = new SuRF(keys_int32, values_uint64, kIncludeDense, 128);
+            FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
             size_t start_position = 0;
             size_t end_position = 10;
             auto iterators = surf->lookupRange(uint32ToString(0), false, keys_int32[end_position], false);
@@ -232,7 +232,7 @@ namespace surf {
     } // namespace surftest
 
 
-} // namespace surf
+} // namespace fst
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

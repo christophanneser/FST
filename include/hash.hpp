@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace surf {
+namespace fst {
 
 //******************************************************
 //HASH FUNCTION FROM LEVELDB
@@ -53,7 +53,7 @@ inline uint32_t suffixHash(const char* key, const int keylen) {
     return Hash(key, keylen, 0xbc9f1d34);
 }
 
-} // namespace surf
+} // namespace fst
 
 #endif // HASH_H_
 

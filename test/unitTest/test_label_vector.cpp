@@ -8,7 +8,7 @@
 
 #include "config.hpp"
 #include "label_vector.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
 namespace surf {
 

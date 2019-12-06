@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "config.hpp"
-#include "surf.hpp"
+#include "fst.hpp"
 
 namespace surf {
 

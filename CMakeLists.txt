@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (SuRF)
+project (FST)
 
 message(STATUS "Configuring..." ${CMAKE_PROJECT_NAME})
 

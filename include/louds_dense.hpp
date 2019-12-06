@@ -5,9 +5,9 @@
 
 #include "config.hpp"
 #include "rank.hpp"
-#include "surf_builder.hpp"
+#include "fst_builder.hpp"
 
-namespace surf {
+namespace fst {
 
     class LoudsDense {
     public:
@@ -551,6 +551,6 @@ namespace surf {
         return moveToRightMostKey();
     }
 
-} //namespace surf
+} //namespace fst
 
 #endif // LOUDSDENSE_H_

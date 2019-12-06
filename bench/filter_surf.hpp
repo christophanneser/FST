@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "surf.hpp"
+#include "fst.hpp"
 
 namespace bench {
 
