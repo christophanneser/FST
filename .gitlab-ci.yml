@@ -13,6 +13,10 @@ make:
         - cmake -DCMAKE_BUILD_TYPE=Debug ..
         - make
         - cd ..
+    artifacts:
+        paths:
+            - build/test/unitTest
+        expire_in: 1 hrs
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:
