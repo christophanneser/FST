@@ -5,11 +5,14 @@ stages:
 
 make:
     stage: build
-    script: 
-        - mkdir -p build
+    script:
+        - ls
+        - mkdir build
+        - ls
         - cd build
         - cmake -DCMAKE_BUILD_TYPE=Debug ..
         - make
+        - cd ..
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:
@@ -22,14 +25,9 @@ make:
 tester:
     stage: test
     script:
-        - cd build
-        - ./tester --gtest_filter='-*Advanced*:*Multithread*'
-
-multithread_tester:
-    stage: test
-    script:
-        - cd build
-        - timeout -s INT 30s ./tester --gtest_filter='*Multithread*'
+        - ls
+        - cd build/test/unitTest
+        - ./test_surf_ints
 
 lint:
     stage: test
@@ -44,8 +42,8 @@ lint:
             - build/vendor/
         policy: pull-push
     tags:
-        - "clang-5.0"
-        - "clang-tidy-5.0"
+        - "clang-6.0"
+        - "clang-tidy-6.0"
         - "cmake"
         - "python3"
     allow_failure: true
