@@ -25,7 +25,6 @@ find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 include("${CMAKE_SOURCE_DIR}/vendor/gtest.cmake")
 
-
 # ---------------------------------------------------------------------------
 # Code Coverage
 # ---------------------------------------------------------------------------
@@ -49,10 +48,9 @@ enable_testing()
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # ---------------------------------------------------------------------------
-# Clang Format
+# Clang Format and Tidy
 # ---------------------------------------------------------------------------
 
-find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-5.0 clang-tidy)
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 
 # Gather lintable files - exclude {popcount, rank, select, bitvector, config, hash, label_vector}.h
@@ -73,7 +71,7 @@ add_custom_target(
 
 add_custom_target(
         clang-tidy
-        COMMAND /usr/bin/clang-tidy
+        COMMAND clang-tidy
         ${ALL_SOURCE_FILES}
         -config=''
         -format-style=google
