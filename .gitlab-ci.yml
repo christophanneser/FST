@@ -7,7 +7,7 @@ make:
     stage: build
     script:
         - ls
-        - mkdir build
+        - mkdir -p build
         - ls
         - cd build
         - cmake -DCMAKE_BUILD_TYPE=Debug ..
@@ -15,7 +15,7 @@ make:
         - cd ..
     artifacts:
         paths:
-            - build/test/unitTest
+            - build
         expire_in: 1 hrs
     cache:
         key: "$CI_COMMIT_REF_SLUG"
@@ -30,8 +30,10 @@ tester:
     stage: test
     script:
         - ls
-        - cd build/test/unitTest
-        - for f in *.sh; do bash "$" -H done
+        - cd build
+        - for f in test*; do
+            ./${f};
+          done
 
 lint:
     stage: test
