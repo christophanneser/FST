@@ -394,9 +394,7 @@ namespace fst {
             return true;
         }
         return false;
-
     }
-
 } // namespace fst
 
 #endif // SURF_H

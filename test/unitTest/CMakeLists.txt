@@ -13,4 +13,3 @@ add_unit_test(test_fst_small)
 add_unit_test(test_fst_ints)
 add_unit_test(test_fst_example)
 add_unit_test(test_fst_example_words)
-
