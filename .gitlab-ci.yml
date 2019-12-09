@@ -41,7 +41,7 @@ lint:
         - mkdir -p build
         - cd build
         - cmake -DCMAKE_BUILD_TYPE=Debug ..
-        - make lint
+        - make clang-tidy
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:

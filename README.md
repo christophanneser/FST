@@ -1,6 +1,4 @@
-# Succinct Range Filter (FST)
-[![Build Status](https://travis-ci.org/efficient/FST.svg?branch=master)](https://travis-ci.org/efficient/FST)
-[![Coverage Status](https://coveralls.io/repos/github/efficient/FST/badge.svg?branch=master)](https://coveralls.io/github/efficient/FST?branch=master)
+# Fast Succinct Tries (Succinct Range Filter)
 
 **FST** is a fast and compact filter that provides exact-match filtering,
 range filtering, and approximate range counts. This is the source code for our

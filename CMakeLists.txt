@@ -1,5 +1,5 @@
-cmake_minimum_required (VERSION 2.6)
-project (FST)
+cmake_minimum_required(VERSION 2.6)
+project(FST)
 
 message(STATUS "Configuring..." ${CMAKE_PROJECT_NAME})
 
@@ -8,14 +8,13 @@ message(STATUS "Configuring..." ${CMAKE_PROJECT_NAME})
 # Include
 # ---------------------------------------------------------------------------
 
-include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
 
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
+    set(CMAKE_BUILD_TYPE "Release")
+endif ()
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -Wall -mpopcnt -pthread -std=c++11")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall -Werror -mpopcnt -pthread -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -Wall -mpopcnt -pthread -std=c++17")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall -Werror -mpopcnt -pthread -std=c++17")
 
 
 # ---------------------------------------------------------------------------
@@ -34,38 +33,53 @@ include("${CMAKE_SOURCE_DIR}/vendor/gtest.cmake")
 option(COVERALLS "Generate coveralls data" OFF)
 
 if (COVERALLS)
-  include("${CMAKE_CURRENT_SOURCE_DIR}/CodeCoverage.cmake")
-  append_coverage_compiler_flags()
-  set(COVERAGE_EXCLUDES 'ARF/*' 'bench/*' 'test/*' '/usr/*' '/lib/*')
-  setup_target_for_coverage(
-    NAME coverage
-    EXECUTABLE make test
+    include("${CMAKE_CURRENT_SOURCE_DIR}/CodeCoverage.cmake")
+    append_coverage_compiler_flags()
+    set(COVERAGE_EXCLUDES 'ARF/*' 'bench/*' 'test/*' '/usr/*' '/lib/*')
+    setup_target_for_coverage(
+            NAME coverage
+            EXECUTABLE make test
     )
-else()
-  add_definitions(-DNDEBUG)
-endif()
+else ()
+    add_definitions(-DNDEBUG)
+endif ()
 
 enable_testing()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # ---------------------------------------------------------------------------
-# Linting
+# Clang Format
 # ---------------------------------------------------------------------------
 
-include("${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake")
-# Gather lintable files
-file(GLOB SRC_CC_LINTING
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/*"
+find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-5.0 clang-tidy)
+find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
+
+# Gather lintable files - exclude {popcount, rank, select, bitvector, config, hash, label_vector}.h
+file(GLOB ALL_SOURCE_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/fst*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/louds_*"
         )
 
-add_clang_tidy_target(lint_src "${SRC_CC_LINTING}")
-list(APPEND lint_targets lint_src)
+message(${ALL_SOURCE_FILES})
 
-message(STATUS "SRC_CC_LINTING=${SRC_CC_LINTING}")
+add_custom_target(
+        clang-format
+        COMMAND /usr/bin/clang-format
+        -style=Google
+        -i
+        ${ALL_SOURCE_FILES}
+)
 
-add_custom_target(lint)
-add_dependencies(lint ${lint_targets})
+add_custom_target(
+        clang-tidy
+        COMMAND /usr/bin/clang-tidy
+        ${ALL_SOURCE_FILES}
+        -config=''
+        -format-style=google
+        --
+        ${INCLUDE_DIRECTORIES}
+)
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +87,6 @@ add_dependencies(lint ${lint_targets})
 # ---------------------------------------------------------------------------
 
 include("${CMAKE_SOURCE_DIR}/test/local.cmake")
-
 
 # ---------------------------------------------------------------------------
 # Benchmarking

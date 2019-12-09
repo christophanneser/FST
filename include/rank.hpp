@@ -11,14 +11,15 @@ namespace fst {
 
 class BitvectorRank : public Bitvector {
  public:
-  BitvectorRank() : basic_block_size_(0), rank_lut_(nullptr) {};
+  BitvectorRank() : basic_block_size_(0), rank_lut_(nullptr){};
 
   BitvectorRank(const position_t basic_block_size,
                 const std::vector<std::vector<word_t> > &bitvector_per_level,
                 const std::vector<position_t> &num_bits_per_level,
                 const level_t start_level = 0,
-                const level_t end_level = 0/* non-inclusive */)
-      : Bitvector(bitvector_per_level, num_bits_per_level, start_level, end_level) {
+                const level_t end_level = 0 /* non-inclusive */)
+      : Bitvector(bitvector_per_level, num_bits_per_level, start_level,
+                  end_level) {
     basic_block_size_ = basic_block_size;
     initRankLut();
   }
@@ -33,8 +34,8 @@ class BitvectorRank : public Bitvector {
     position_t word_per_basic_block = basic_block_size_ / kWordSize;
     position_t block_id = pos / basic_block_size_;
     position_t offset = pos & (basic_block_size_ - 1);
-    return (rank_lut_[block_id]
-        + popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
+    return (rank_lut_[block_id] +
+            popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
   }
 
   position_t rankLutSize() const {
@@ -42,8 +43,8 @@ class BitvectorRank : public Bitvector {
   }
 
   position_t serializedSize() const {
-    position_t size = sizeof(num_bits_) + sizeof(basic_block_size_)
-        + bitsSize() + rankLutSize();
+    position_t size = sizeof(num_bits_) + sizeof(basic_block_size_) +
+                      bitsSize() + rankLutSize();
     sizeAlign(size);
     return size;
   }
@@ -73,11 +74,14 @@ class BitvectorRank : public Bitvector {
     auto *bv_rank = new BitvectorRank();
     memcpy(&(bv_rank->num_bits_), src, sizeof(bv_rank->num_bits_));
     src += sizeof(bv_rank->num_bits_);
-    memcpy(&(bv_rank->basic_block_size_), src, sizeof(bv_rank->basic_block_size_));
+    memcpy(&(bv_rank->basic_block_size_), src,
+           sizeof(bv_rank->basic_block_size_));
     src += sizeof(bv_rank->basic_block_size_);
-    bv_rank->bits_ = const_cast<word_t *>(reinterpret_cast<const word_t *>(src));
+    bv_rank->bits_ =
+        const_cast<word_t *>(reinterpret_cast<const word_t *>(src));
     src += bv_rank->bitsSize();
-    bv_rank->rank_lut_ = const_cast<position_t *>(reinterpret_cast<const position_t *>(src));
+    bv_rank->rank_lut_ =
+        const_cast<position_t *>(reinterpret_cast<const position_t *>(src));
     src += bv_rank->rankLutSize();
     align(src);
     return bv_rank;
@@ -97,15 +101,16 @@ class BitvectorRank : public Bitvector {
     position_t cumu_rank = 0;
     for (position_t i = 0; i < num_blocks - 1; i++) {
       rank_lut_[i] = cumu_rank;
-      cumu_rank += popcountLinear(bits_, i * word_per_basic_block, basic_block_size_);
+      cumu_rank +=
+          popcountLinear(bits_, i * word_per_basic_block, basic_block_size_);
     }
     rank_lut_[num_blocks - 1] = cumu_rank;
   }
 
   position_t basic_block_size_;
-  position_t *rank_lut_; //rank look-up table
+  position_t *rank_lut_;  // rank look-up table
 };
 
-} // namespace fst
+}  // namespace fst
 
-#endif // RANK_H_
+#endif  // RANK_H_

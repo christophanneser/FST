@@ -18,23 +18,17 @@ static const word_t kMsbMask = 0x8000000000000000;
 static const word_t kOneMask = 0xFFFFFFFFFFFFFFFF;
 
 static const bool kIncludeDense = true;
-//static const uint32_t kSparseDenseRatio = 64;
+// static const uint32_t kSparseDenseRatio = 64;
 static const uint32_t kSparseDenseRatio = 16;
 static const label_t kTerminator = 255;
 
 static const int kHashShift = 7;
 
-void align(char *&ptr) {
-  ptr = (char *) (((uint64_t) ptr + 7) & ~((uint64_t) 7));
-}
+void align(char *&ptr) { ptr = (char *)(((uint64_t)ptr + 7) & ~((uint64_t)7)); }
 
-void sizeAlign(position_t &size) {
-  size = (size + 7) & ~((position_t) 7);
-}
+void sizeAlign(position_t &size) { size = (size + 7) & ~((position_t)7); }
 
-void sizeAlign(uint64_t &size) {
-  size = (size + 7) & ~((uint64_t) 7);
-}
+void sizeAlign(uint64_t &size) { size = (size + 7) & ~((uint64_t)7); }
 
 std::string uint64ToString(const uint64_t word) {
   uint64_t endian_swapped_word = __builtin_bswap64(word);
@@ -52,6 +46,6 @@ uint64_t stringToUint64(const std::string &str_word) {
   return __builtin_bswap64(int_word);
 }
 
-} // namespace fst
+}  // namespace fst
 
-#endif // CONFIG_H_
+#endif  // CONFIG_H_

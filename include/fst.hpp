@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "config.hpp"
+#include "fst_builder.hpp"
 #include "louds_dense.hpp"
 #include "louds_sparse.hpp"
-#include "fst_builder.hpp"
 
 namespace fst {
 
@@ -15,7 +15,7 @@ class FST {
  public:
   class Iter {
    public:
-    Iter() {};
+    Iter(){};
 
     Iter(const FST *filter) {
       dense_iter_ = LoudsDense::Iter(filter->louds_dense_);
@@ -68,7 +68,8 @@ class FST {
   //------------------------------------------------------------------
   // Input keys must be SORTED
   //------------------------------------------------------------------
-  FST(const std::vector<std::string> &keys, const std::vector<uint64_t> &values) {
+  FST(const std::vector<std::string> &keys,
+      const std::vector<uint64_t> &values) {
     create(keys, values, kIncludeDense, kSparseDenseRatio);
   }
 
@@ -79,7 +80,8 @@ class FST {
 
   ~FST() = default;
 
-  void create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values, bool include_dense,
+  void create(const std::vector<std::string> &keys,
+              const std::vector<uint64_t> &values, bool include_dense,
               uint32_t sparse_dense_ratio);
 
   bool lookupKey(const std::string &key, uint64_t &value) const;
@@ -94,8 +96,10 @@ class FST {
 
   FST::Iter moveToLast() const;
 
-  std::pair<FST::Iter, FST::Iter> lookupRange(const std::string &left_key, bool left_inclusive,
-                                              const std::string &right_key, bool right_inclusive);
+  std::pair<FST::Iter, FST::Iter> lookupRange(const std::string &left_key,
+                                              bool left_inclusive,
+                                              const std::string &right_key,
+                                              bool right_inclusive);
 
   uint64_t serializedSize() const;
 
@@ -111,7 +115,7 @@ class FST {
     char *cur_data = data;
     louds_dense_->serialize(cur_data);
     louds_sparse_->serialize(cur_data);
-    assert(cur_data - data == (int64_t) size);
+    assert(cur_data - data == (int64_t)size);
     return data;
   }
 
@@ -136,8 +140,9 @@ class FST {
   FST::Iter end_;
 };
 
-void FST::create(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
-                 const bool include_dense, const uint32_t sparse_dense_ratio) {
+void FST::create(const std::vector<std::string> &keys,
+                 const std::vector<uint64_t> &values, const bool include_dense,
+                 const uint32_t sparse_dense_ratio) {
   // todo where to store the values?
   builder_ = new SuRFBuilder(include_dense, sparse_dense_ratio);
   builder_->build(keys, values);
@@ -156,20 +161,20 @@ bool FST::lookupKey(const std::string &key, uint64_t &value) const {
   return true;
 }
 
-FST::Iter FST::moveToKeyGreaterThan(const std::string &key, const bool inclusive) const {
+FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
+                                    const bool inclusive) const {
   FST::Iter iter(this);
-  iter.could_be_fp_ = louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
+  iter.could_be_fp_ =
+      louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
 
-  if (!iter.dense_iter_.isValid())
-    return iter;
-  if (iter.dense_iter_.isComplete())
-    return iter;
+  if (!iter.dense_iter_.isValid()) return iter;
+  if (iter.dense_iter_.isComplete()) return iter;
 
   if (!iter.dense_iter_.isSearchComplete()) {
     iter.passToSparse();
-    iter.could_be_fp_ = louds_sparse_->moveToKeyGreaterThan(key, inclusive, iter.sparse_iter_);
-    if (!iter.sparse_iter_.isValid())
-      iter.incrementDenseIter();
+    iter.could_be_fp_ =
+        louds_sparse_->moveToKeyGreaterThan(key, inclusive, iter.sparse_iter_);
+    if (!iter.sparse_iter_.isValid()) iter.incrementDenseIter();
     return iter;
   } else if (!iter.dense_iter_.isMoveLeftComplete()) {
     iter.passToSparse();
@@ -177,11 +182,12 @@ FST::Iter FST::moveToKeyGreaterThan(const std::string &key, const bool inclusive
     return iter;
   }
 
-  assert(false); // shouldn't reach here
+  assert(false);  // shouldn't reach here
   return iter;
 }
 
-FST::Iter FST::moveToKeyLessThan(const std::string &key, const bool inclusive) const {
+FST::Iter FST::moveToKeyLessThan(const std::string &key,
+                                 const bool inclusive) const {
   FST::Iter iter = moveToKeyGreaterThan(key, false);
   if (!iter.isValid()) {
     iter = moveToLast();
@@ -190,8 +196,7 @@ FST::Iter FST::moveToKeyLessThan(const std::string &key, const bool inclusive) c
   if (!iter.getFpFlag()) {
     iter--;
     uint64_t value = 0;
-    if (lookupKey(key, value))
-      iter--;
+    if (lookupKey(key, value)) iter--;
   }
   return iter;
 }
@@ -201,8 +206,7 @@ FST::Iter FST::moveToFirst() const {
   if (louds_dense_->getHeight() > 0) {
     iter.dense_iter_.setToFirstLabelInRoot();
     iter.dense_iter_.moveToLeftMostKey();
-    if (iter.dense_iter_.isMoveLeftComplete())
-      return iter;
+    if (iter.dense_iter_.isMoveLeftComplete()) return iter;
     iter.passToSparse();
     iter.sparse_iter_.moveToLeftMostKey();
   } else {
@@ -217,8 +221,7 @@ FST::Iter FST::moveToLast() const {
   if (louds_dense_->getHeight() > 0) {
     iter.dense_iter_.setToLastLabelInRoot();
     iter.dense_iter_.moveToRightMostKey();
-    if (iter.dense_iter_.isMoveRightComplete())
-      return iter;
+    if (iter.dense_iter_.isMoveRightComplete()) return iter;
     iter.passToSparse();
     iter.sparse_iter_.moveToRightMostKey();
   } else {
@@ -228,23 +231,27 @@ FST::Iter FST::moveToLast() const {
   return iter;
 }
 
-std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key, const bool left_inclusive,
-                                                 const std::string &right_key, const bool right_inclusive) {
-
+std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key,
+                                                 const bool left_inclusive,
+                                                 const std::string &right_key,
+                                                 const bool right_inclusive) {
   auto begin_iter = moveToKeyGreaterThan(left_key, left_inclusive);
   auto end_iter = moveToKeyGreaterThan(right_key, true);
 
-  // the right key should be inclusive -> move end-iterator to next element if there is one
+  // the right key should be inclusive -> move end-iterator to next element if
+  // there is one
   if (right_inclusive) {
     if (end_iter.isValid()) {
-      // do move the iterator only in the case the provided right key has been found
+      // do move the iterator only in the case the provided right key has been
+      // found
       if (end_iter.getKey() == right_key) {
         end_iter++;
       }
     }
   }
 
-  if (end_iter.isValid() && begin_iter.isValid() && begin_iter.getKey() > end_iter.getKey()) {
+  if (end_iter.isValid() && begin_iter.isValid() &&
+      begin_iter.getKey() > end_iter.getKey()) {
     return {Iter(), Iter()};
   }
 
@@ -252,17 +259,15 @@ std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key, co
 }
 
 uint64_t FST::serializedSize() const {
-  return (louds_dense_->serializedSize()
-      + louds_sparse_->serializedSize());
+  return (louds_dense_->serializedSize() + louds_sparse_->serializedSize());
 }
 
 uint64_t FST::getMemoryUsage() const {
-  return (sizeof(FST) + louds_dense_->getMemoryUsage() + louds_sparse_->getMemoryUsage());
+  return (sizeof(FST) + louds_dense_->getMemoryUsage() +
+          louds_sparse_->getMemoryUsage());
 }
 
-level_t FST::getHeight() const {
-  return louds_sparse_->getHeight();
-}
+level_t FST::getHeight() const { return louds_sparse_->getHeight(); }
 
 level_t FST::getSparseStartLevel() const {
   return louds_sparse_->getStartLevel();
@@ -275,34 +280,28 @@ void FST::Iter::clear() {
   sparse_iter_.clear();
 }
 
-bool FST::Iter::getFpFlag() const {
-  return could_be_fp_;
-}
+bool FST::Iter::getFpFlag() const { return could_be_fp_; }
 
 bool FST::Iter::isValid() const {
-  return dense_iter_.isValid()
-      && (dense_iter_.isComplete() || sparse_iter_.isValid());
+  return dense_iter_.isValid() &&
+         (dense_iter_.isComplete() || sparse_iter_.isValid());
 }
 
 int FST::Iter::compare(const std::string &key) const {
   assert(isValid());
   int dense_compare = dense_iter_.compare(key);
-  if (dense_iter_.isComplete() || dense_compare != 0)
-    return dense_compare;
+  if (dense_iter_.isComplete() || dense_compare != 0) return dense_compare;
   return sparse_iter_.compare(key);
 }
 
 uint64_t FST::Iter::getValue() const {
-  if (dense_iter_.isComplete())
-    return dense_iter_.getValue();
+  if (dense_iter_.isComplete()) return dense_iter_.getValue();
   return sparse_iter_.getValue();
 }
 
 std::string FST::Iter::getKey() const {
-  if (!isValid())
-    return std::string();
-  if (dense_iter_.isComplete())
-    return dense_iter_.getKey();
+  if (!isValid()) return std::string();
+  if (dense_iter_.isComplete()) return dense_iter_.getKey();
   return dense_iter_.getKey() + sparse_iter_.getKey();
 }
 
@@ -311,14 +310,11 @@ void FST::Iter::passToSparse() {
 }
 
 bool FST::Iter::incrementDenseIter() {
-  if (!dense_iter_.isValid())
-    return false;
+  if (!dense_iter_.isValid()) return false;
 
   dense_iter_++;
-  if (!dense_iter_.isValid())
-    return false;
-  if (dense_iter_.isMoveLeftComplete())
-    return true;
+  if (!dense_iter_.isValid()) return false;
+  if (dense_iter_.isMoveLeftComplete()) return true;
 
   passToSparse();
   sparse_iter_.moveToLeftMostKey();
@@ -326,29 +322,23 @@ bool FST::Iter::incrementDenseIter() {
 }
 
 bool FST::Iter::incrementSparseIter() {
-  if (!sparse_iter_.isValid())
-    return false;
+  if (!sparse_iter_.isValid()) return false;
   sparse_iter_++;
   return sparse_iter_.isValid();
 }
 
 bool FST::Iter::operator++(int) {
-  if (!isValid())
-    return false;
-  if (incrementSparseIter())
-    return true;
+  if (!isValid()) return false;
+  if (incrementSparseIter()) return true;
   return incrementDenseIter();
 }
 
 bool FST::Iter::decrementDenseIter() {
-  if (!dense_iter_.isValid())
-    return false;
+  if (!dense_iter_.isValid()) return false;
 
   dense_iter_--;
-  if (!dense_iter_.isValid())
-    return false;
-  if (dense_iter_.isMoveRightComplete())
-    return true;
+  if (!dense_iter_.isValid()) return false;
+  if (dense_iter_.isMoveRightComplete()) return true;
 
   passToSparse();
   sparse_iter_.moveToRightMostKey();
@@ -356,41 +346,45 @@ bool FST::Iter::decrementDenseIter() {
 }
 
 bool FST::Iter::decrementSparseIter() {
-  if (!sparse_iter_.isValid())
-    return false;
+  if (!sparse_iter_.isValid()) return false;
   sparse_iter_--;
   return sparse_iter_.isValid();
 }
 
 bool FST::Iter::operator--(int) {
-  if (!isValid())
-    return false;
-  if (decrementSparseIter())
-    return true;
+  if (!isValid()) return false;
+  if (decrementSparseIter()) return true;
   return decrementDenseIter();
 }
 
 bool FST::Iter::operator!=(const FST::Iter &other) {
-  //compare two iterators
+  // compare two iterators
 
   // both iterators invalid
-  if (!this->isValid() && !other.isValid()) { return false; }
+  if (!this->isValid() && !other.isValid()) {
+    return false;
+  }
 
   // one of them is invalid -> iterators are not equal
-  if (!this->isValid() || !other.isValid()) { return true; }
-
-  if (this->dense_iter_.getLastIteratorPosition() != other.dense_iter_.getLastIteratorPosition()) {
+  if (!this->isValid() || !other.isValid()) {
     return true;
   }
 
-  // dense iterators are equal and both of them are complete -> search not continued in sparse levels
+  if (this->dense_iter_.getLastIteratorPosition() !=
+      other.dense_iter_.getLastIteratorPosition()) {
+    return true;
+  }
+
+  // dense iterators are equal and both of them are complete -> search not
+  // continued in sparse levels
   if (this->dense_iter_.isComplete() && other.dense_iter_.isComplete()) {
     return false;
   }
 
   // dense is equal, check sparse levels now
-  return this->sparse_iter_.getLastIteratorPosition() != other.sparse_iter_.getLastIteratorPosition();
+  return this->sparse_iter_.getLastIteratorPosition() !=
+         other.sparse_iter_.getLastIteratorPosition();
 }
-} // namespace fst
+}  // namespace fst
 
-#endif // SURF_H
+#endif  // SURF_H

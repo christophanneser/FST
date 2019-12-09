@@ -6,7 +6,7 @@
 namespace fst {
 
 //******************************************************
-//HASH FUNCTION FROM LEVELDB
+// HASH FUNCTION FROM LEVELDB
 //******************************************************
 inline uint32_t DecodeFixed32(const char *ptr) {
   uint32_t result;
@@ -19,7 +19,7 @@ inline uint32_t Hash(const char *data, size_t n, uint32_t seed) {
   const uint32_t m = 0xc6a4a793;
   const uint32_t r = 24;
   const char *limit = data + n;
-  uint32_t h = seed ^(n * m);
+  uint32_t h = seed ^ (n * m);
 
   // Pick up four bytes at a time
   while (data + 4 <= limit) {
@@ -32,9 +32,12 @@ inline uint32_t Hash(const char *data, size_t n, uint32_t seed) {
 
   // Pick up remaining bytes
   switch (limit - data) {
-    case 3: h += static_cast<unsigned char>(data[2]) << 16u;
-    case 2: h += static_cast<unsigned char>(data[1]) << 8u;
-    case 1: h += static_cast<unsigned char>(data[0]);
+    case 3:
+      h += static_cast<unsigned char>(data[2]) << 16u;
+    case 2:
+      h += static_cast<unsigned char>(data[1]) << 8u;
+    case 1:
+      h += static_cast<unsigned char>(data[0]);
       h *= m;
       h ^= (h >> r);
       break;
@@ -50,7 +53,6 @@ inline uint32_t suffixHash(const char *key, const int keylen) {
   return Hash(key, keylen, 0xbc9f1d34);
 }
 
-} // namespace fst
+}  // namespace fst
 
-#endif // HASH_H_
-
+#endif  // HASH_H_
