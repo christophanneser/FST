@@ -10,7 +10,7 @@ namespace fst {
 
     namespace surftest {
 
-        static const std::string kFilePath = "../../../test/keys.txt";
+        static const std::string kFilePath = "../../test/keys.txt";
         static const int kTestSize = 64404590;
 
         class SuRFExampleWords : public ::testing::Test {
@@ -115,3 +115,7 @@ namespace fst {
 
 } // namespace fst
 
+int main(int argc, char *argv[]) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

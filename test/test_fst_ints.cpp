@@ -15,7 +15,7 @@ namespace fst {
     namespace surftest {
 
         static const level_t kSuffixLen = 8;
-        static const uint32_t number_keys = 250000;
+        static const uint32_t number_keys = 25000000;
         static const uint32_t kIntTestSkip = 9;
 
         class SuRFInt32Test : public ::testing::Test {
@@ -233,3 +233,8 @@ namespace fst {
 
 
 } // namespace fst
+
+int main(int argc, char *argv[]) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
