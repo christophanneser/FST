@@ -16,3 +16,9 @@ endfunction()
 add_unit_test(test/test_fst_example test_example)
 add_unit_test(test/test_fst_example_words test_example_words)
 add_unit_test(test/test_fst_ints test_int32)
+
+
+# ---------------------------------------------------------------------------
+# Copy required files for test to build directory
+# ---------------------------------------------------------------------------
+configure_file(test/keys.txt keys.txt COPYONLY)
