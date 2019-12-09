@@ -2,7 +2,7 @@
 # Test Files and Classes
 # ---------------------------------------------------------------------------
 
-function (add_unit_test file_name name)
+function(add_unit_test file_name name)
     add_executable(${name} ${file_name}.cpp)
     target_link_libraries(${name} gtest)
     add_test(NAME ${name}
