@@ -13,7 +13,7 @@ namespace fst {
         static const std::string kFilePath = "../../../test/keys.txt";
         static const int kTestSize = 64404590;
 
-        class SuRFExample : public ::testing::Test {
+        class SuRFExampleWords : public ::testing::Test {
         public:
             void SetUp() override {
                 keys.resize(kTestSize);
@@ -44,7 +44,7 @@ namespace fst {
             std::vector<uint64_t> values_uint64;
         };
 
-        TEST_F (SuRFExample, MapTest) {
+        TEST_F (SuRFExampleWords, MapTest) {
             std::vector<std::pair<std::string, uint64_t >> initializer_list(keys.size());
 
             for (auto i = 0u; i < keys.size(); i++) {
@@ -65,7 +65,7 @@ namespace fst {
             std::cout << "Size of map<string,uint64_t>: " << (total_size / (1024 * 1024)) << " MiB" << std::endl;
         }
 
-        TEST_F (SuRFExample, IteratorTest) {
+        TEST_F (SuRFExampleWords, IteratorTest1) {
             // build fst
             auto start = std::chrono::high_resolution_clock::now();
             FST *surf = new FST(keys, values_uint64, kIncludeDense, 16);
@@ -115,7 +115,3 @@ namespace fst {
 
 } // namespace fst
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

@@ -1,7 +1,5 @@
 #include "gtest/gtest.h"
 
-#include <assert.h>
-
 #include <string>
 #include <vector>
 
@@ -62,8 +60,3 @@ TEST_F (SuRFInt32Test, ExampleInPaperTest) {
 } // namespace surftest
 
 } // namespace fst
-
-int main (int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

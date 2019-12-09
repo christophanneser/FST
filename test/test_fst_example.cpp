@@ -1,21 +1,14 @@
 #include "gtest/gtest.h"
-
-#include <assert.h>
-
 #include <string>
 #include <vector>
-
 #include "config.hpp"
 #include "fst.hpp"
-#include <cstdlib>
-#include <chrono>
 
 namespace fst {
 
     namespace surftest {
 
-
-        class SuRFExample : public ::testing::Test {
+        class SuRFExampleWords : public ::testing::Test {
         public:
             void SetUp() override {
                 keys.emplace_back(std::string("abca"));
@@ -42,7 +35,7 @@ namespace fst {
         };
 
 
-        TEST_F (SuRFExample, IteratorTest) {
+        TEST_F (SuRFExampleWords, IteratorTest) {
             FST *surf = new FST(keys, values_uint64, kIncludeDense, 100);
             auto iterators = surf->lookupRange("a", true, "b", false);
             uint64_t i(0);
@@ -63,7 +56,3 @@ namespace fst {
 
 } // namespace fst
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

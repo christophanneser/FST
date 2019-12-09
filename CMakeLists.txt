@@ -3,6 +3,7 @@ project (FST)
 
 message(STATUS "Configuring..." ${CMAKE_PROJECT_NAME})
 
+
 # ---------------------------------------------------------------------------
 # Include
 # ---------------------------------------------------------------------------
@@ -15,6 +16,16 @@ endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -Wall -mpopcnt -pthread -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall -Werror -mpopcnt -pthread -std=c++11")
+
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+find_package(Threads REQUIRED)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+include("${CMAKE_SOURCE_DIR}/vendor/gtest.cmake")
+
 
 # ---------------------------------------------------------------------------
 # Code Coverage
@@ -58,10 +69,10 @@ add_dependencies(lint ${lint_targets})
 
 
 # ---------------------------------------------------------------------------
-# Test
+# Tests
 # ---------------------------------------------------------------------------
 
-add_subdirectory(test)
+include("${CMAKE_SOURCE_DIR}/test/local.cmake")
 
 
 # ---------------------------------------------------------------------------

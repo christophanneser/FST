@@ -31,7 +31,7 @@ tester:
     script:
         - ls
         - cd build/test/unitTest
-        - ./test_surf_ints
+        - for f in *.sh; do bash "$" -H done
 
 lint:
     stage: test
