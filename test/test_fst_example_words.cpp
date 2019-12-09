@@ -11,7 +11,7 @@ namespace fst {
     namespace surftest {
 
         static const std::string kFilePath = "keys.txt";
-        static const int kTestSize = 64404590;
+        static const int kTestSize = 4000;
 
         class SuRFExampleWords : public ::testing::Test {
         public:
