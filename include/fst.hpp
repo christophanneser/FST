@@ -92,7 +92,7 @@ class FST {
     transformed_keys.reserve(keys.size());
 
     for (auto key: keys) {
-      uint32_t endian_swapped_word = __builtin_bswap64(key);
+      uint32_t endian_swapped_word = __builtin_bswap32(key);
       transformed_keys.emplace_back(
           std::string(reinterpret_cast<const char *>(&endian_swapped_word), 4));
     }
@@ -111,6 +111,10 @@ class FST {
               uint32_t sparse_dense_ratio);
 
   bool lookupKey(const std::string &key, uint64_t &value) const;
+
+  bool lookupKey(uint32_t key, uint64_t &value) const;
+
+  bool lookupKey(uint64_t key, uint64_t &value) const;
 
   // This function searches in a conservative way: if inclusive is true
   // and the stored key prefix matches key, iter stays at this key prefix.
@@ -176,6 +180,34 @@ void FST::create(const std::vector<std::string> &keys,
   louds_sparse_ = new LoudsSparse(builder_);
   iter_ = FST::Iter(this);
   delete builder_;
+}
+
+bool FST::lookupKey(const uint32_t key, uint64_t &value) const {
+  // transform uint32 to string
+  uint32_t endian_swapped_word = __builtin_bswap32(key);
+  std::string transformed_key =
+      std::string(reinterpret_cast<const char *>(&endian_swapped_word), 4);
+
+  position_t connect_node_num = 0;
+  if (!louds_dense_->lookupKey(transformed_key, connect_node_num, value))
+    return false;
+  else if (connect_node_num != 0)
+    return louds_sparse_->lookupKey(transformed_key, connect_node_num, value);
+  return true;
+}
+
+bool FST::lookupKey(const uint64_t key, uint64_t &value) const {
+  // transform uint32 to string
+  uint64_t endian_swapped_word = __builtin_bswap64(key);
+  std::string transformed_key =
+      std::string(reinterpret_cast<const char *>(&endian_swapped_word), 8);
+
+  position_t connect_node_num = 0;
+  if (!louds_dense_->lookupKey(transformed_key, connect_node_num, value))
+    return false;
+  else if (connect_node_num != 0)
+    return louds_sparse_->lookupKey(transformed_key, connect_node_num, value);
+  return true;
 }
 
 bool FST::lookupKey(const std::string &key, uint64_t &value) const {
