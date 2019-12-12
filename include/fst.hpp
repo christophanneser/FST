@@ -15,7 +15,7 @@ class FST {
  public:
   class Iter {
    public:
-    Iter(){};
+    Iter() {};
 
     Iter(const FST *filter) {
       dense_iter_ = LoudsDense::Iter(filter->louds_dense_);
@@ -73,6 +73,32 @@ class FST {
     create(keys, values, kIncludeDense, kSparseDenseRatio);
   }
 
+  FST(const std::vector<uint64_t> &keys,
+      const std::vector<uint64_t> &values) {
+    std::vector<std::string> transformed_keys;
+    transformed_keys.reserve(keys.size());
+
+    for (auto key: keys) {
+      uint64_t endian_swapped_word = __builtin_bswap64(key);
+      transformed_keys.emplace_back(
+          std::string(reinterpret_cast<const char *>(&endian_swapped_word), 8));
+    }
+    create(transformed_keys, values, kIncludeDense, kSparseDenseRatio);
+  }
+
+  FST(const std::vector<uint32_t> &keys,
+      const std::vector<uint64_t> &values) {
+    std::vector<std::string> transformed_keys;
+    transformed_keys.reserve(keys.size());
+
+    for (auto key: keys) {
+      uint32_t endian_swapped_word = __builtin_bswap64(key);
+      transformed_keys.emplace_back(
+          std::string(reinterpret_cast<const char *>(&endian_swapped_word), 4));
+    }
+    create(transformed_keys, values, kIncludeDense, kSparseDenseRatio);
+  }
+
   FST(const std::vector<std::string> &keys, const std::vector<uint64_t> &values,
       const bool include_dense, const uint32_t sparse_dense_ratio) {
     create(keys, values, include_dense, sparse_dense_ratio);
@@ -115,7 +141,7 @@ class FST {
     char *cur_data = data;
     louds_dense_->serialize(cur_data);
     louds_sparse_->serialize(cur_data);
-    assert(cur_data - data == (int64_t)size);
+    assert(cur_data - data == (int64_t) size);
     return data;
   }
 
@@ -264,7 +290,7 @@ uint64_t FST::serializedSize() const {
 
 uint64_t FST::getMemoryUsage() const {
   return (sizeof(FST) + louds_dense_->getMemoryUsage() +
-          louds_sparse_->getMemoryUsage());
+      louds_sparse_->getMemoryUsage());
 }
 
 level_t FST::getHeight() const { return louds_sparse_->getHeight(); }
@@ -284,7 +310,7 @@ bool FST::Iter::getFpFlag() const { return could_be_fp_; }
 
 bool FST::Iter::isValid() const {
   return dense_iter_.isValid() &&
-         (dense_iter_.isComplete() || sparse_iter_.isValid());
+      (dense_iter_.isComplete() || sparse_iter_.isValid());
 }
 
 int FST::Iter::compare(const std::string &key) const {
@@ -383,7 +409,7 @@ bool FST::Iter::operator!=(const FST::Iter &other) {
 
   // dense is equal, check sparse levels now
   return this->sparse_iter_.getLastIteratorPosition() !=
-         other.sparse_iter_.getLastIteratorPosition();
+      other.sparse_iter_.getLastIteratorPosition();
 }
 }  // namespace fst
 
