@@ -34,7 +34,8 @@ class SuRFInt32Test : public ::testing::Test {
     }
     std::random_shuffle(values_uint64.begin(), values_uint64.end());
 
-    std::cout << "number keys: " << std::to_string(keys_int32.size() / 1000000) << "M" << std::endl;
+    std::cout << "number keys: " << std::to_string(keys_int32.size() / 1000000)
+              << "M" << std::endl;
   }
 
   void TearDown() override {}
@@ -42,6 +43,33 @@ class SuRFInt32Test : public ::testing::Test {
   std::vector<std::string> keys_int32;
   std::vector<uint64_t> values_uint64;
 };
+
+TEST_F(SuRFInt32Test, PointLookupTestsNonExistingKeys) {
+  auto fst = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+
+  std::vector<uint32_t> lookup_keys(number_keys);
+  uint32_t lookup_key = 7;
+  uint64_t value = 0;
+  for (uint32_t i = 0; i < number_keys; i++) {
+    bool exist = fst->lookupKey(lookup_key, value);
+    ASSERT_FALSE(exist);
+    lookup_key += kIntTestSkip;
+  }
+}
+
+TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
+  auto fst = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+
+  std::vector<uint32_t> lookup_keys(number_keys);
+  uint32_t lookup_key = 3;
+  uint64_t value = 0;
+  for (uint32_t i = 0; i < number_keys; i++) {
+    bool exist = fst->lookupKey(lookup_key, value);
+    ASSERT_TRUE(exist);
+    ASSERT_EQ(value, values_uint64[i]);
+    lookup_key += kIntTestSkip;
+  }
+}
 
 TEST_F (SuRFInt32Test, PointLookupTests) {
   auto start = std::chrono::high_resolution_clock::now();
@@ -66,7 +94,8 @@ TEST_F (SuRFInt32Test, PointLookupTests) {
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
   FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
-  FST::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
+  FST::Iter
+      iter = surf->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
   for (; start_position < keys_int32.size(); start_position++) {
     ASSERT_TRUE(iter.isValid());
     ASSERT_EQ(keys_int32[start_position].compare(iter.getKey()), 0);
@@ -91,7 +120,10 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
   FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
+  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+                                     false,
+                                     keys_int32[end_position],
+                                     false);
 
   while (iterators.first != iterators.second) {
     ASSERT_TRUE(iterators.first.isValid());
@@ -106,28 +138,38 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
+  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+                                     false,
+                                     keys_int32[end_position],
+                                     false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], true);
+  iterators = surf->lookupRange(keys_int32[start_position - 1],
+                                false,
+                                keys_int32[end_position],
+                                true);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position], true, keys_int32[end_position], true);
+  iterators = surf->lookupRange(keys_int32[start_position],
+                                true,
+                                keys_int32[end_position],
+                                true);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
 
-  iterators = surf->lookupRange(uint32ToString(2), true, uint32ToString(5), false);
+  iterators =
+      surf->lookupRange(uint32ToString(2), true, uint32ToString(5), false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -139,14 +181,20 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
   FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = keys_int32.size() - 10;
   size_t end_position = keys_int32.size() - 1;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], false);
+  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+                                     false,
+                                     keys_int32[end_position],
+                                     false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position - 1], false, keys_int32[end_position], true);
+  iterators = surf->lookupRange(keys_int32[start_position - 1],
+                                false,
+                                keys_int32[end_position],
+                                true);
 
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_TRUE(iterators.first.isValid());
@@ -167,28 +215,39 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 0;
   size_t end_position = 10;
-  auto iterators = surf->lookupRange(uint32ToString(0), false, keys_int32[end_position], false);
+  auto iterators = surf->lookupRange(uint32ToString(0),
+                                     false,
+                                     keys_int32[end_position],
+                                     false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position], true, keys_int32[end_position], false);
+  iterators = surf->lookupRange(keys_int32[start_position],
+                                true,
+                                keys_int32[end_position],
+                                false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position], false, keys_int32[end_position], false);
+  iterators = surf->lookupRange(keys_int32[start_position],
+                                false,
+                                keys_int32[end_position],
+                                false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position + 1]), 0);
+  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position + 1]),
+            0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(uint32ToString(0), false, uint32ToString(2), false);
+  iterators =
+      surf->lookupRange(uint32ToString(0), false, uint32ToString(2), false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
