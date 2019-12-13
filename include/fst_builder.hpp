@@ -64,9 +64,11 @@ class SuRFBuilder {
   const std::vector<position_t> &getNodeCounts() const { return node_counts_; }
   level_t getSparseStartLevel() const { return sparse_start_level_; }
 
-  std::vector<uint64_t> getDenseValues() const { return values_dense; }
+  std::vector<std::pair<std::string,
+                        uint64_t>> getDenseValues() const { return values_dense; }
 
-  std::vector<uint64_t> getSparseValues() const { return values_sparse; }
+  std::vector<std::pair<std::string,
+                        uint64_t>> getSparseValues() const { return values_sparse; }
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) {
@@ -136,19 +138,19 @@ class SuRFBuilder {
   uint32_t sparse_dense_ratio_;
   level_t sparse_start_level_;
 
-  std::vector<std::vector<uint64_t>> values_;
+  std::vector<std::vector<std::pair<std::string, uint64_t>>> values_;
 
   // LOUDS-Sparse bit/byte vectors
   std::vector<std::vector<label_t>> labels_;
   std::vector<std::vector<word_t>> child_indicator_bits_;
   std::vector<std::vector<word_t>> louds_bits_;
-  std::vector<uint64_t> values_sparse;
+  std::vector<std::pair<std::string, uint64_t>> values_sparse;
 
   // LOUDS-Dense bit vectors
   std::vector<std::vector<word_t>> bitmap_labels_;
   std::vector<std::vector<word_t>> bitmap_child_indicator_bits_;
   std::vector<std::vector<word_t>> prefixkey_indicator_bits_;
-  std::vector<uint64_t> values_dense;
+  std::vector<std::pair<std::string, uint64_t>> values_dense;
 
   // auxiliary per level bookkeeping vectors
   std::vector<position_t> node_counts_;
@@ -212,7 +214,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
 
   if (level > next_key.length()
       || !isSameKey(key.substr(0, level), next_key.substr(0, level))) {
-    values_[level - 1].emplace_back(v);
+    values_[level - 1].emplace_back(std::make_pair(key, v));
     return level;
   }
 
@@ -224,7 +226,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
     insertKeyByte(key[level], level, is_start_of_node, is_term);
     level++;
   }
-  values_[level - 1].emplace_back(v);
+  values_[level - 1].emplace_back(std::make_pair(key, v));
   return level;
 
   // The last byte inserted makes key unique in the trie.
@@ -373,7 +375,7 @@ void SuRFBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
 
 void SuRFBuilder::addLevel() {
   labels_.emplace_back(std::vector<label_t>());
-  values_.emplace_back(std::vector<uint64_t>());
+  values_.emplace_back(std::vector<std::pair<std::string, uint64_t>>());
   child_indicator_bits_.emplace_back(std::vector<word_t>());
   louds_bits_.emplace_back(std::vector<word_t>());
 

@@ -21,7 +21,7 @@ class LoudsDense {
           trie_(new LoudsDense()),
           send_out_node_num_(0),
           key_len_(0),
-          is_at_prefix_key_(false){};
+          is_at_prefix_key_(false) {};
 
     explicit Iter(LoudsDense *trie)
         : is_valid_(false),
@@ -52,7 +52,7 @@ class LoudsDense {
 
     bool isComplete() const {
       return (is_search_complete_ &&
-              (is_move_left_complete_ && is_move_right_complete_));
+          (is_move_left_complete_ && is_move_right_complete_));
     }
 
     int compare(const std::string &key) const;
@@ -122,7 +122,7 @@ class LoudsDense {
   };
 
  public:
-  LoudsDense(){};
+  LoudsDense() {};
 
   LoudsDense(const SuRFBuilder *builder);
 
@@ -188,7 +188,7 @@ class LoudsDense {
   static const position_t kNodeFanout = 256;
   static const position_t kRankBasicBlockSize = 512;
 
-  std::vector<uint64_t> values_dense_;
+  std::vector<std::pair<std::string, uint64_t>> keys_values_dense_;
 
   level_t height_;
 
@@ -202,7 +202,7 @@ LoudsDense::LoudsDense(const SuRFBuilder *builder) {
   std::vector<position_t> num_bits_per_level;
   for (level_t level = 0; level < height_; level++)
     num_bits_per_level.push_back(builder->getBitmapLabels()[level].size() *
-                                 kWordSize);
+        kWordSize);
 
   label_bitmaps_ =
       new BitvectorRank(kRankBasicBlockSize, builder->getBitmapLabels(),
@@ -215,7 +215,7 @@ LoudsDense::LoudsDense(const SuRFBuilder *builder) {
       builder->getNodeCounts(), 0, height_);
 
   // todo make more efficient by completely moving this vector
-  values_dense_ = builder->getDenseValues();
+  keys_values_dense_ = builder->getDenseValues();
 }
 
 bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
@@ -227,7 +227,7 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
     if (level >= key.length()) {  // if run out of searchKey bytes
       return false;
     }
-    pos += (label_t)key[level];
+    pos += (label_t) key[level];
 
     // child_indicator_bitmaps_->prefetch(pos);
 
@@ -238,10 +238,13 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
     if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
       // CA todo: we must return the value or value index here
       uint64_t value_index = label_bitmaps_->rank(pos) -
-                             child_indicator_bitmaps_->rank(pos) -
-                             1;  // + prefix but we do not support this so far
-      value = values_dense_[value_index];
-      return true;
+          child_indicator_bitmaps_->rank(pos) -
+          1;  // + prefix but we do not support this so far
+      if (keys_values_dense_[value_index].first == key) {
+        value = keys_values_dense_[value_index].second;
+        return true;
+      }
+      return false;
     }
     node_num = getChildNodeNum(pos);
   }
@@ -262,7 +265,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
       // CA: todo if run out, then traverse to leftmost key
       iter.append(getNextPos(pos - 1));
       if (prefixkey_indicator_bits_->readBit(
-              node_num))  // if the prefix is also a key
+          node_num))  // if the prefix is also a key
         iter.is_at_prefix_key_ = true;
       else
         iter.moveToLeftMostKey();
@@ -271,7 +274,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
       return true;
     }
 
-    pos += (label_t)key[level];
+    pos += (label_t) key[level];
     iter.append(pos);
 
     // if no exact match
@@ -303,15 +306,21 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
 
 uint64_t LoudsDense::serializedSize() const {
   uint64_t size = sizeof(height_) + label_bitmaps_->serializedSize() +
-                  child_indicator_bitmaps_->serializedSize() +
-                  prefixkey_indicator_bits_->serializedSize();
+      child_indicator_bitmaps_->serializedSize() +
+      prefixkey_indicator_bits_->serializedSize();
   sizeAlign(size);
   return size;
 }
 
 uint64_t LoudsDense::getMemoryUsage() const {
+  size_t values_dense_size_ = 0;
+  for (const auto &key_value: keys_values_dense_) {
+    values_dense_size_ += key_value.first.size() + 8;
+  }
+
   return (sizeof(LoudsDense) + label_bitmaps_->size() +
-          child_indicator_bitmaps_->size() + prefixkey_indicator_bits_->size());
+      child_indicator_bitmaps_->size() + prefixkey_indicator_bits_->size()
+      + values_dense_size_);
 }
 
 position_t LoudsDense::getChildNodeNum(const position_t pos) const {
@@ -323,7 +332,7 @@ position_t LoudsDense::getSuffixPos(const position_t pos,
   position_t node_num = pos / kNodeFanout;
   position_t suffix_pos =
       (label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) +
-       prefixkey_indicator_bits_->rank(node_num) - 1);
+          prefixkey_indicator_bits_->rank(node_num) - 1);
   if (is_prefix_key && label_bitmaps_->readBit(pos) &&
       !child_indicator_bitmaps_->readBit(pos))
     suffix_pos--;
@@ -366,19 +375,19 @@ std::string LoudsDense::Iter::getKey() const {
   if (!is_valid_) return std::string();
   level_t len = key_len_;
   if (is_at_prefix_key_) len--;
-  return std::string((const char *)key_.data(), (size_t)len);
+  return std::string((const char *) key_.data(), (size_t) len);
 }
 
 void LoudsDense::Iter::append(position_t pos) {
   assert(key_len_ < key_.size());
-  key_[key_len_] = (label_t)(pos % kNodeFanout);
+  key_[key_len_] = (label_t) (pos % kNodeFanout);
   pos_in_trie_[key_len_] = pos;
   key_len_++;
 }
 
 void LoudsDense::Iter::set(level_t level, position_t pos) {
   assert(level < key_.size());
-  key_[level] = (label_t)(pos % kNodeFanout);
+  key_[level] = (label_t) (pos % kNodeFanout);
   pos_in_trie_[level] = pos;
 }
 
@@ -395,10 +404,10 @@ void LoudsDense::Iter::setFlags(const bool is_valid,
 void LoudsDense::Iter::setToFirstLabelInRoot() {
   if (trie_->label_bitmaps_->readBit(0)) {
     pos_in_trie_[0] = 0;
-    key_[0] = (label_t)0;
+    key_[0] = (label_t) 0;
   } else {
     pos_in_trie_[0] = trie_->getNextPos(0);
-    key_[0] = (label_t)pos_in_trie_[0];
+    key_[0] = (label_t) pos_in_trie_[0];
   }
   key_len_++;
 }
@@ -406,7 +415,7 @@ void LoudsDense::Iter::setToFirstLabelInRoot() {
 void LoudsDense::Iter::setToLastLabelInRoot() {
   bool is_out_of_bound;
   pos_in_trie_[0] = trie_->getPrevPos(kNodeFanout, &is_out_of_bound);
-  key_[0] = (label_t)pos_in_trie_[0];
+  key_[0] = (label_t) pos_in_trie_[0];
   key_len_++;
 }
 
@@ -482,7 +491,7 @@ uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
 }
 
 uint64_t LoudsDense::Iter::getValue() const {
-  return trie_->values_dense_[value_pos_[key_len_ - 1]];
+  return trie_->keys_values_dense_[value_pos_[key_len_ - 1]].second;
 }
 
 void LoudsDense::Iter::rankValuePosition(size_t pos) {
@@ -491,8 +500,8 @@ void LoudsDense::Iter::rankValuePosition(size_t pos) {
   } else {  // initially rank value position here
     value_pos_initialized_[key_len_ - 1] = true;
     uint64_t value_index = trie_->label_bitmaps_->rank(pos) -
-                           trie_->child_indicator_bitmaps_->rank(pos) -
-                           1;  // + prefix but we do not support this so far
+        trie_->child_indicator_bitmaps_->rank(pos) -
+        1;  // + prefix but we do not support this so far
     value_pos_[key_len_ - 1] = value_index;
   }
 }
