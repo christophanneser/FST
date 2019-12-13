@@ -241,8 +241,6 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
                              child_indicator_bitmaps_->rank(pos) -
                              1;  // + prefix but we do not support this so far
       value = values_dense_[value_index];
-      // std::cout << "value index dense: " << std::to_string(value_index) <<
-      // std::endl;
       return true;
     }
     node_num = getChildNodeNum(pos);

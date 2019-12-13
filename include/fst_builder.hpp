@@ -12,13 +12,13 @@ namespace fst {
 
 class SuRFBuilder {
  public:
-  SuRFBuilder() : sparse_start_level_(0){};
+  SuRFBuilder() : sparse_start_level_(0) {};
   explicit SuRFBuilder(bool include_dense, uint32_t sparse_dense_ratio)
       : include_dense_(include_dense),
         sparse_dense_ratio_(sparse_dense_ratio),
-        sparse_start_level_(0){};
+        sparse_start_level_(0) {};
 
-  ~SuRFBuilder(){};
+  ~SuRFBuilder() {};
 
   // Fills in the LOUDS-dense and sparse vectors (members of this class)
   // through a single scan of the sorted key list.
@@ -185,7 +185,7 @@ void SuRFBuilder::buildSparse(const std::vector<std::string> &keys,
 level_t SuRFBuilder::skipCommonPrefix(const std::string &key) {
   level_t level = 0;
   while (level < key.length() &&
-         isCharCommonPrefix((label_t)key[level], level)) {
+      isCharCommonPrefix((label_t) key[level], level)) {
     setBit(child_indicator_bits_[level], getNumItems(level) - 1);
     level++;
   }
@@ -209,16 +209,18 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
   // shoud be in an the node as the previous key.
   insertKeyByte(key[level], level, is_start_of_node, is_term);
   level++;
-  // todo: CA: we comment this out since we want to store the full keys
-  // if (level > next_key.length()
-  //|| !isSameKey(key.substr(0, level), next_key.substr(0, level)))
-  // return level;
+
+  if (level > next_key.length()
+      || !isSameKey(key.substr(0, level), next_key.substr(0, level))) {
+    values_[level - 1].emplace_back(v);
+    return level;
+  }
 
   // All the following bytes inserted must be the start of a new node.
   is_start_of_node = true;
-  // todo CA: comment following conditions out: && level < next_key.length() &&
-  // key[level] == next_key[level]
-  while (level < key.length()) {
+
+  while (level < key.length() && level < next_key.length()
+      && key[level - 1] == next_key[level - 1]) {
     insertKeyByte(key[level], level, is_start_of_node, is_term);
     level++;
   }
@@ -226,7 +228,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
   return level;
 
   // The last byte inserted makes key unique in the trie.
-  // Todo: we want to store the full key in the trie
+
   // if (level < key.length()) {
   // insertKeyByte(key[level], level, is_start_of_node, is_term);
   //} else {
@@ -241,7 +243,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
 inline bool SuRFBuilder::isCharCommonPrefix(const label_t c,
                                             const level_t level) const {
   return (level < getTreeHeight()) && (!is_last_item_terminator_[level]) &&
-         (c == labels_[level].back());
+      (c == labels_[level].back());
 }
 
 inline bool SuRFBuilder::isLevelEmpty(const level_t level) const {
@@ -284,7 +286,7 @@ inline void SuRFBuilder::determineCutoffLevel() {
   uint64_t dense_mem = computeDenseMem(cutoff_level);
   uint64_t sparse_mem = computeSparseMem(cutoff_level);
   while ((cutoff_level < getTreeHeight()) &&
-         (dense_mem * sparse_dense_ratio_ < sparse_mem)) {
+      (dense_mem * sparse_dense_ratio_ < sparse_mem)) {
     cutoff_level++;
     dense_mem = computeDenseMem(cutoff_level);
     sparse_mem = computeSparseMem(cutoff_level);
@@ -352,7 +354,7 @@ void SuRFBuilder::initDenseVectors(const level_t level) {
   prefixkey_indicator_bits_.push_back(std::vector<word_t>());
 
   for (position_t nc = 0; nc < node_counts_[level]; nc++) {
-    for (int i = 0; i < (int)kFanout; i += kWordSize) {
+    for (int i = 0; i < (int) kFanout; i += kWordSize) {
       bitmap_labels_[level].push_back(0);
       bitmap_child_indicator_bits_[level].push_back(0);
     }
@@ -395,7 +397,7 @@ bool SuRFBuilder::isTerminator(const level_t level,
                                const position_t pos) const {
   label_t label = labels_[level][pos];
   return ((label == kTerminator) &&
-          !readBit(child_indicator_bits_[level], pos));
+      !readBit(child_indicator_bits_[level], pos));
 }
 
 }  // namespace fst
