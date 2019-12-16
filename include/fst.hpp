@@ -18,8 +18,8 @@ class FST {
     Iter() {};
 
     Iter(const FST *filter) {
-      dense_iter_ = LoudsDense::Iter(filter->louds_dense_);
-      sparse_iter_ = LoudsSparse::Iter(filter->louds_sparse_);
+      dense_iter_ = LoudsDense::Iter(filter->louds_dense_.get());
+      sparse_iter_ = LoudsSparse::Iter(filter->louds_sparse_.get());
       could_be_fp_ = false;
     }
 
@@ -163,9 +163,9 @@ class FST {
   }
 
  private:
-  LoudsDense *louds_dense_;
-  LoudsSparse *louds_sparse_;
-  SuRFBuilder *builder_;
+  std::unique_ptr<LoudsDense> louds_dense_;
+  std::unique_ptr<LoudsSparse> louds_sparse_;
+  std::unique_ptr<SuRFBuilder> builder_;
   FST::Iter iter_;
   FST::Iter end_;
 };
@@ -174,12 +174,12 @@ void FST::create(const std::vector<std::string> &keys,
                  const std::vector<uint64_t> &values, const bool include_dense,
                  const uint32_t sparse_dense_ratio) {
   // todo where to store the values?
-  builder_ = new SuRFBuilder(include_dense, sparse_dense_ratio);
+  builder_ = std::make_unique<SuRFBuilder>(include_dense, sparse_dense_ratio);
   builder_->build(keys, values);
-  louds_dense_ = new LoudsDense(builder_);
-  louds_sparse_ = new LoudsSparse(builder_);
+  louds_dense_ = std::make_unique<LoudsDense>(builder_.get());
+  louds_sparse_ = std::make_unique<LoudsSparse>(builder_.get());
   iter_ = FST::Iter(this);
-  delete builder_;
+  builder_.reset();
 }
 
 bool FST::lookupKey(const uint32_t key, uint64_t &value) const {

@@ -15,7 +15,7 @@ namespace fst {
 namespace surftest {
 
 static const level_t kSuffixLen = 8;
-static const uint32_t number_keys = 2500000;
+static const uint32_t number_keys = 250000;
 static const uint32_t kIntTestSkip = 9;
 
 class SuRFInt32Test : public ::testing::Test {
@@ -45,7 +45,7 @@ class SuRFInt32Test : public ::testing::Test {
 };
 
 TEST_F(SuRFInt32Test, PointLookupTestsNonExistingKeys) {
-  auto fst = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
 
   std::vector<uint32_t> lookup_keys(number_keys);
   uint32_t lookup_key = 7;
@@ -58,7 +58,7 @@ TEST_F(SuRFInt32Test, PointLookupTestsNonExistingKeys) {
 }
 
 TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
-  auto fst = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
 
   std::vector<uint32_t> lookup_keys(number_keys);
   uint32_t lookup_key = 3;
@@ -73,7 +73,7 @@ TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
 
 TEST_F (SuRFInt32Test, PointLookupTests) {
   auto start = std::chrono::high_resolution_clock::now();
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
@@ -81,7 +81,7 @@ TEST_F (SuRFInt32Test, PointLookupTests) {
   start = std::chrono::high_resolution_clock::now();
   for (uint64_t i = 0; i < values_uint64.size(); i++) {
     uint64_t retrieved_value = 0;
-    bool exist = surf->lookupKey(keys_int32[i], retrieved_value);
+    bool exist = fst->lookupKey(keys_int32[i], retrieved_value);
     ASSERT_TRUE(exist);
     ASSERT_EQ(values_uint64[i], retrieved_value);
   }
@@ -92,10 +92,10 @@ TEST_F (SuRFInt32Test, PointLookupTests) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   FST::Iter
-      iter = surf->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
+      iter = fst->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
   for (; start_position < keys_int32.size(); start_position++) {
     ASSERT_TRUE(iter.isValid());
     ASSERT_EQ(keys_int32[start_position].compare(iter.getKey()), 0);
@@ -105,9 +105,9 @@ TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
-  FST::Iter iter = surf->moveToKeyGreaterThan(keys_int32[start_position], true);
+  FST::Iter iter = fst->moveToKeyGreaterThan(keys_int32[start_position], true);
   for (; start_position < keys_int32.size(); start_position++) {
     ASSERT_TRUE(iter.isValid());
     ASSERT_EQ(keys_int32[start_position].compare(iter.getKey()), 0);
@@ -117,10 +117,10 @@ TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+  auto iterators = fst->lookupRange(keys_int32[start_position - 1],
                                      false,
                                      keys_int32[end_position],
                                      false);
@@ -135,10 +135,10 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+  auto iterators = fst->lookupRange(keys_int32[start_position - 1],
                                      false,
                                      keys_int32[end_position],
                                      false);
@@ -148,7 +148,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position - 1],
+  iterators = fst->lookupRange(keys_int32[start_position - 1],
                                 false,
                                 keys_int32[end_position],
                                 true);
@@ -158,7 +158,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position],
+  iterators = fst->lookupRange(keys_int32[start_position],
                                 true,
                                 keys_int32[end_position],
                                 true);
@@ -169,7 +169,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
 
   iterators =
-      surf->lookupRange(uint32ToString(2), true, uint32ToString(5), false);
+      fst->lookupRange(uint32ToString(2), true, uint32ToString(5), false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -178,10 +178,10 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = keys_int32.size() - 10;
   size_t end_position = keys_int32.size() - 1;
-  auto iterators = surf->lookupRange(keys_int32[start_position - 1],
+  auto iterators = fst->lookupRange(keys_int32[start_position - 1],
                                      false,
                                      keys_int32[end_position],
                                      false);
@@ -191,7 +191,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position - 1],
+  iterators = fst->lookupRange(keys_int32[start_position - 1],
                                 false,
                                 keys_int32[end_position],
                                 true);
@@ -212,10 +212,10 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 0;
   size_t end_position = 10;
-  auto iterators = surf->lookupRange(uint32ToString(0),
+  auto iterators = fst->lookupRange(uint32ToString(0),
                                      false,
                                      keys_int32[end_position],
                                      false);
@@ -225,7 +225,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position],
+  iterators = fst->lookupRange(keys_int32[start_position],
                                 true,
                                 keys_int32[end_position],
                                 false);
@@ -235,7 +235,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
-  iterators = surf->lookupRange(keys_int32[start_position],
+  iterators = fst->lookupRange(keys_int32[start_position],
                                 false,
                                 keys_int32[end_position],
                                 false);
@@ -247,20 +247,18 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
   iterators =
-      surf->lookupRange(uint32ToString(0), false, uint32ToString(2), false);
+      fst->lookupRange(uint32ToString(0), false, uint32ToString(2), false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
   ASSERT_FALSE(iterators.first != iterators.second);
 
   // left smaller than right
-  iterators = surf->lookupRange(keys_int32[123], false, keys_int32[23], false);
+  iterators = fst->lookupRange(keys_int32[123], false, keys_int32[23], false);
 
   ASSERT_FALSE(iterators.first.isValid());
   ASSERT_FALSE(iterators.second.isValid());
   ASSERT_FALSE(iterators.first != iterators.second);
-
-  return;
 }
 
 } // namespace surftest

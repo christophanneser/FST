@@ -153,8 +153,8 @@ class LoudsDense {
     align(dst);
   }
 
-  static LoudsDense *deSerialize(char *&src) {
-    LoudsDense *louds_dense = new LoudsDense();
+  static std::unique_ptr<LoudsDense> deSerialize(char *&src) {
+    std::unique_ptr<LoudsDense> louds_dense = std::make_unique<LoudsDense>();
     memcpy(&(louds_dense->height_), src, sizeof(louds_dense->height_));
     src += sizeof(louds_dense->height_);
     align(src);
