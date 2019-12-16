@@ -15,19 +15,16 @@ class FST {
  public:
   class Iter {
    public:
-    Iter() {};
+    Iter() = default;
 
     Iter(const FST *filter) {
       dense_iter_ = LoudsDense::Iter(filter->louds_dense_.get());
       sparse_iter_ = LoudsSparse::Iter(filter->louds_sparse_.get());
-      could_be_fp_ = false;
     }
 
     void clear();
 
     bool isValid() const;
-
-    bool getFpFlag() const;
 
     int compare(const std::string &key) const;
 
@@ -57,7 +54,6 @@ class FST {
     // true implies that dense_iter_ is valid
     LoudsDense::Iter dense_iter_;
     LoudsSparse::Iter sparse_iter_;
-    bool could_be_fp_;
 
     friend class FST;
   };
@@ -157,11 +153,6 @@ class FST {
     return surf;
   }
 
-  void destroy() {
-    louds_dense_->destroy();
-    louds_sparse_->destroy();
-  }
-
  private:
   std::unique_ptr<LoudsDense> louds_dense_;
   std::unique_ptr<LoudsSparse> louds_sparse_;
@@ -173,7 +164,7 @@ class FST {
 void FST::create(const std::vector<std::string> &keys,
                  const std::vector<uint64_t> &values, const bool include_dense,
                  const uint32_t sparse_dense_ratio) {
-  // todo where to store the values?
+  // todo builder and actual louds dense store all bitmaps and values twice
   builder_ = std::make_unique<SuRFBuilder>(include_dense, sparse_dense_ratio);
   builder_->build(keys, values);
   louds_dense_ = std::make_unique<LoudsDense>(builder_.get());
@@ -222,16 +213,14 @@ bool FST::lookupKey(const std::string &key, uint64_t &value) const {
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
                                     const bool inclusive) const {
   FST::Iter iter(this);
-  iter.could_be_fp_ =
-      louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
+  louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
 
   if (!iter.dense_iter_.isValid()) return iter;
   if (iter.dense_iter_.isComplete()) return iter;
 
   if (!iter.dense_iter_.isSearchComplete()) {
     iter.passToSparse();
-    iter.could_be_fp_ =
-        louds_sparse_->moveToKeyGreaterThan(key, inclusive, iter.sparse_iter_);
+    louds_sparse_->moveToKeyGreaterThan(key, inclusive, iter.sparse_iter_);
     if (!iter.sparse_iter_.isValid()) iter.incrementDenseIter();
     return iter;
   } else if (!iter.dense_iter_.isMoveLeftComplete()) {
@@ -251,11 +240,11 @@ FST::Iter FST::moveToKeyLessThan(const std::string &key,
     iter = moveToLast();
     return iter;
   }
-  if (!iter.getFpFlag()) {
-    iter--;
-    uint64_t value = 0;
-    if (lookupKey(key, value)) iter--;
-  }
+  //if (!iter.getFpFlag()) {
+  //  iter--;
+  //  uint64_t value = 0;
+  //  if (lookupKey(key, value)) iter--;
+  //}
   return iter;
 }
 
@@ -337,8 +326,6 @@ void FST::Iter::clear() {
   dense_iter_.clear();
   sparse_iter_.clear();
 }
-
-bool FST::Iter::getFpFlag() const { return could_be_fp_; }
 
 bool FST::Iter::isValid() const {
   return dense_iter_.isValid() &&

@@ -18,10 +18,11 @@ class LoudsDense {
           is_search_complete_(false),
           is_move_left_complete_(false),
           is_move_right_complete_(false),
-          trie_(new LoudsDense()),
           send_out_node_num_(0),
           key_len_(0),
-          is_at_prefix_key_(false) {};
+          is_at_prefix_key_(false) {
+      trie_ = nullptr;
+    };
 
     explicit Iter(LoudsDense *trie)
         : is_valid_(false),
@@ -124,9 +125,11 @@ class LoudsDense {
  public:
   LoudsDense() {};
 
-  LoudsDense(const SuRFBuilder *builder);
+  explicit LoudsDense(SuRFBuilder *builder);
 
-  ~LoudsDense() {}
+  ~LoudsDense() {
+
+  }
 
   // Returns whether key exists in the trie so far
   // out_node_num == 0 means search terminates in louds-dense.
@@ -134,7 +137,7 @@ class LoudsDense {
                  uint64_t &value) const;
 
   // return value indicates potential false positive
-  bool moveToKeyGreaterThan(const std::string &key, const bool inclusive,
+  void moveToKeyGreaterThan(const std::string &key, const bool inclusive,
                             LoudsDense::Iter &iter) const;
 
   uint64_t getHeight() const { return height_; };
@@ -165,24 +168,14 @@ class LoudsDense {
     return louds_dense;
   }
 
-  void destroy() {
-    label_bitmaps_->destroy();
-    child_indicator_bitmaps_->destroy();
-    prefixkey_indicator_bits_->destroy();
-  }
-
  private:
-  position_t getChildNodeNum(const position_t pos) const;
+  position_t getChildNodeNum(position_t pos) const;
 
-  position_t getSuffixPos(const position_t pos, const bool is_prefix_key) const;
+  position_t getSuffixPos(position_t pos, bool is_prefix_key) const;
 
-  position_t getNextPos(const position_t pos) const;
+  position_t getNextPos(position_t pos) const;
 
-  position_t getPrevPos(const position_t pos, bool *is_out_of_bound) const;
-
-  bool compareSuffixGreaterThan(const position_t pos, const std::string &key,
-                                const level_t level, const bool inclusive,
-                                LoudsDense::Iter &iter) const;
+  position_t getPrevPos(position_t pos, bool *is_out_of_bound) const;
 
  private:
   static const position_t kNodeFanout = 256;
@@ -192,27 +185,36 @@ class LoudsDense {
 
   level_t height_;
 
-  BitvectorRank *label_bitmaps_;
-  BitvectorRank *child_indicator_bitmaps_;
-  BitvectorRank *prefixkey_indicator_bits_;  // 1 bit per internal node
+  std::unique_ptr<BitvectorRank> label_bitmaps_;
+  std::unique_ptr<BitvectorRank> child_indicator_bitmaps_;
+  std::unique_ptr<BitvectorRank>
+      prefixkey_indicator_bits_;  // 1 bit per internal node
 };
 
-LoudsDense::LoudsDense(const SuRFBuilder *builder) {
+LoudsDense::LoudsDense(SuRFBuilder *builder) {
   height_ = builder->getSparseStartLevel();
   std::vector<position_t> num_bits_per_level;
   for (level_t level = 0; level < height_; level++)
     num_bits_per_level.push_back(builder->getBitmapLabels()[level].size() *
         kWordSize);
 
-  label_bitmaps_ =
-      new BitvectorRank(kRankBasicBlockSize, builder->getBitmapLabels(),
-                        num_bits_per_level, 0, height_);
-  child_indicator_bitmaps_ = new BitvectorRank(
-      kRankBasicBlockSize, builder->getBitmapChildIndicatorBits(),
-      num_bits_per_level, 0, height_);
-  prefixkey_indicator_bits_ = new BitvectorRank(
-      kRankBasicBlockSize, builder->getPrefixkeyIndicatorBits(),
-      builder->getNodeCounts(), 0, height_);
+  label_bitmaps_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize,
+                                                   builder->getBitmapLabels(),
+                                                   num_bits_per_level,
+                                                   0,
+                                                   height_);
+  child_indicator_bitmaps_ =
+      std::make_unique<BitvectorRank>(kRankBasicBlockSize,
+                                      builder->getBitmapChildIndicatorBits(),
+                                      num_bits_per_level,
+                                      0,
+                                      height_);
+  prefixkey_indicator_bits_ =
+      std::make_unique<BitvectorRank>(kRankBasicBlockSize,
+                                      builder->getPrefixkeyIndicatorBits(),
+                                      builder->getNodeCounts(),
+                                      0,
+                                      height_);
 
   // todo make more efficient by completely moving this vector
   keys_values_dense_ = builder->getDenseValues();
@@ -253,7 +255,7 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   return true;
 }
 
-bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
+void LoudsDense::moveToKeyGreaterThan(const std::string &key,
                                       const bool inclusive,
                                       LoudsDense::Iter &iter) const {
   position_t node_num = 0;
@@ -271,7 +273,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
         iter.moveToLeftMostKey();
       // valid, search complete, moveLeft complete, moveRight complete
       iter.setFlags(true, true, true, true);
-      return true;
+      return;
     }
 
     pos += (label_t) key[level];
@@ -280,7 +282,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
     // if no exact match
     if (!label_bitmaps_->readBit(pos)) {
       iter++;
-      return false;
+      return;
     }
 
     // if trie branch terminates
@@ -292,7 +294,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
       }
       // set value index here
       iter.rankValuePosition(pos);
-      return true;
+      return;
     }
     node_num = getChildNodeNum(pos);
   }
@@ -301,7 +303,7 @@ bool LoudsDense::moveToKeyGreaterThan(const std::string &key,
   iter.setSendOutNodeNum(node_num);
   // valid, search INCOMPLETE, moveLeft complete, moveRight complete
   iter.setFlags(true, false, true, true);
-  return true;
+  return;
 }
 
 uint64_t LoudsDense::serializedSize() const {

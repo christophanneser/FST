@@ -110,8 +110,7 @@ class LoudsSparse {
   bool lookupKey(const std::string &key, const position_t in_node_num,
                  uint64_t &value) const;
 
-  // return value indicates potential false positive
-  bool moveToKeyGreaterThan(const std::string &key, const bool inclusive,
+  void moveToKeyGreaterThan(const std::string &key, const bool inclusive,
                             LoudsSparse::Iter &iter) const;
 
   level_t getHeight() const { return height_; };
@@ -159,12 +158,6 @@ class LoudsSparse {
     return louds_sparse;
   }
 
-  void destroy() {
-    labels_->destroy();
-    child_indicator_bits_->destroy();
-    louds_bits_->destroy();
-  }
-
  private:
   position_t getChildNodeNum(const position_t pos) const;
 
@@ -200,9 +193,9 @@ class LoudsSparse {
   // number of children(1's in child indicator bitmap) in louds-dense encoding
   position_t child_count_dense_;
 
-  LabelVector *labels_;
-  BitvectorRank *child_indicator_bits_;
-  BitvectorSelect *louds_bits_;
+  std::unique_ptr<LabelVector> labels_;
+  std::unique_ptr<BitvectorRank> child_indicator_bits_;
+  std::unique_ptr<BitvectorSelect> louds_bits_;
 };
 
 LoudsSparse::LoudsSparse(const SuRFBuilder *builder) {
@@ -219,18 +212,24 @@ LoudsSparse::LoudsSparse(const SuRFBuilder *builder) {
     child_count_dense_ =
         node_count_dense_ + builder->getNodeCounts()[start_level_] - 1;
   }
-  labels_ = new LabelVector(builder->getLabels(), start_level_, height_);
+  labels_ = std::make_unique<LabelVector>(builder->getLabels(),
+                                          start_level_,
+                                          height_);
 
   std::vector<position_t> num_items_per_level;
   for (level_t level = 0; level < height_; level++) {
     num_items_per_level.push_back(builder->getLabels()[level].size());
   }
-  child_indicator_bits_ =
-      new BitvectorRank(kRankBasicBlockSize, builder->getChildIndicatorBits(),
-                        num_items_per_level, start_level_, height_);
-  louds_bits_ =
-      new BitvectorSelect(kSelectSampleInterval, builder->getLoudsBits(),
-                          num_items_per_level, start_level_, height_);
+  child_indicator_bits_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize,
+                                                          builder->getChildIndicatorBits(),
+                                                          num_items_per_level,
+                                                          start_level_,
+                                                          height_);
+  louds_bits_ = std::make_unique<BitvectorSelect>(kSelectSampleInterval,
+                                                  builder->getLoudsBits(),
+                                                  num_items_per_level,
+                                                  start_level_,
+                                                  height_);
 
   keys_values_sparse_ = builder->getSparseValues();
 }
@@ -264,7 +263,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
   return false;
 }
 
-bool LoudsSparse::moveToKeyGreaterThan(const std::string &key,
+void LoudsSparse::moveToKeyGreaterThan(const std::string &key,
                                        const bool inclusive,
                                        LoudsSparse::Iter &iter) const {
   position_t node_num = iter.getStartNodeNum();
@@ -277,7 +276,7 @@ bool LoudsSparse::moveToKeyGreaterThan(const std::string &key,
     if (!labels_->search((label_t) key[level], pos, node_size)) {
       // todo -> do not return false, but just move to the next bigger key?
       moveToLeftInNextSubtrie(pos, node_size, key[level], iter);
-      return false;
+      return;
     }
 
     iter.append(key[level], pos);
@@ -290,7 +289,7 @@ bool LoudsSparse::moveToKeyGreaterThan(const std::string &key,
         iter++;
       }
       iter.rankValuePosition(pos);
-      return true;
+      return;
     }
     // move to child
     node_num = getChildNodeNum(pos);
@@ -303,16 +302,16 @@ bool LoudsSparse::moveToKeyGreaterThan(const std::string &key,
     iter.is_at_terminator_ = true;
     if (!inclusive) iter++;
     iter.is_valid_ = true;
-    return false;
+    return;
   }
 
   if (key.length() <= level) {
     iter.moveToLeftMostKey();
-    return false;
+    return;
   }
 
   iter.is_valid_ = true;
-  return true;
+  return;
 }
 
 uint64_t LoudsSparse::serializedSize() const {

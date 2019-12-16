@@ -65,6 +65,7 @@ add_custom_target(
         clang-format
         COMMAND /usr/bin/clang-format
         -style=Google
+        -CompactNamespaces: true
         -i
         ${ALL_SOURCE_FILES}
 )

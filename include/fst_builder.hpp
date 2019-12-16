@@ -72,7 +72,7 @@ class SuRFBuilder {
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) {
-    return a.compare(b) == 0;
+    return a == b;
   }
 
   // Fill in the LOUDS-Sparse vectors through a single scan

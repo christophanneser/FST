@@ -1,13 +1,8 @@
 #include "gtest/gtest.h"
-
-#include <assert.h>
-
 #include <string>
 #include <vector>
-
 #include "config.hpp"
 #include "fst.hpp"
-#include <cstdlib>
 #include <chrono>
 
 namespace fst {
@@ -15,7 +10,7 @@ namespace fst {
 namespace surftest {
 
 static const level_t kSuffixLen = 8;
-static const uint32_t number_keys = 250000;
+static const uint32_t number_keys = 25000000;
 static const uint32_t kIntTestSkip = 9;
 
 class SuRFInt32Test : public ::testing::Test {

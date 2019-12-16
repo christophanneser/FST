@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include <vector>
-
+#include <stdexcept>
 #include "bitvector.hpp"
 #include "popcount.h"
 
@@ -11,7 +11,7 @@ namespace fst {
 
 class BitvectorRank : public Bitvector {
  public:
-  BitvectorRank() : basic_block_size_(0), rank_lut_(nullptr){};
+  BitvectorRank() : basic_block_size_(0), rank_lut_(nullptr) {};
 
   BitvectorRank(const position_t basic_block_size,
                 const std::vector<std::vector<word_t> > &bitvector_per_level,
@@ -24,7 +24,10 @@ class BitvectorRank : public Bitvector {
     initRankLut();
   }
 
-  ~BitvectorRank() {}
+  ~BitvectorRank() {
+    delete[] bits_;
+    delete[] rank_lut_;
+  }
 
   // Counts the number of 1's in the bitvector up to position pos.
   // pos is zero-based; count is one-based.
@@ -35,7 +38,7 @@ class BitvectorRank : public Bitvector {
     position_t block_id = pos / basic_block_size_;
     position_t offset = pos & (basic_block_size_ - 1);
     return (rank_lut_[block_id] +
-            popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
+        popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
   }
 
   position_t rankLutSize() const {
@@ -44,7 +47,7 @@ class BitvectorRank : public Bitvector {
 
   position_t serializedSize() const {
     position_t size = sizeof(num_bits_) + sizeof(basic_block_size_) +
-                      bitsSize() + rankLutSize();
+        bitsSize() + rankLutSize();
     sizeAlign(size);
     return size;
   }
@@ -70,8 +73,8 @@ class BitvectorRank : public Bitvector {
     align(dst);
   }
 
-  static BitvectorRank *deSerialize(char *&src) {
-    auto *bv_rank = new BitvectorRank();
+  static std::unique_ptr<BitvectorRank> deSerialize(char *&src) {
+    auto bv_rank = std::make_unique<BitvectorRank>();
     memcpy(&(bv_rank->num_bits_), src, sizeof(bv_rank->num_bits_));
     src += sizeof(bv_rank->num_bits_);
     memcpy(&(bv_rank->basic_block_size_), src,
@@ -85,11 +88,6 @@ class BitvectorRank : public Bitvector {
     src += bv_rank->rankLutSize();
     align(src);
     return bv_rank;
-  }
-
-  void destroy() {
-    delete[] bits_;
-    delete[] rank_lut_;
   }
 
  private:

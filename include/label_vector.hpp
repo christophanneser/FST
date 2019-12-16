@@ -32,7 +32,9 @@ class LabelVector {
     }
   }
 
-  ~LabelVector() {}
+  ~LabelVector() {
+    delete[] labels_;
+  }
 
   position_t getNumBytes() const { return num_bytes_; }
 
@@ -71,8 +73,8 @@ class LabelVector {
     align(dst);
   }
 
-  static LabelVector *deSerialize(char *&src) {
-    auto *lv = new LabelVector();
+  static std::unique_ptr<LabelVector> deSerialize(char *&src) {
+    auto lv = std::make_unique<LabelVector>();
     memcpy(&(lv->num_bytes_), src, sizeof(lv->num_bytes_));
     src += sizeof(lv->num_bytes_);
     lv->labels_ = const_cast<label_t *>(reinterpret_cast<const label_t *>(src));
@@ -81,7 +83,9 @@ class LabelVector {
     return lv;
   }
 
-  void destroy() { delete[] labels_; }
+  void destroy() {
+
+  }
 
  private:
   position_t num_bytes_;
@@ -137,6 +141,7 @@ bool LabelVector::binarySearch(const label_t target, position_t &pos,
 
 bool LabelVector::simdSearch(const label_t target, position_t &pos,
                              const position_t search_len) const {
+  // CA: todo fix invalid read
   position_t num_labels_searched = 0;
   position_t num_labels_left = search_len;
   while ((num_labels_left >> 4) > 0) {

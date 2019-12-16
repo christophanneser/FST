@@ -25,7 +25,10 @@ class BitvectorSelect : public Bitvector {
     initSelectLut();
   }
 
-  ~BitvectorSelect() = default;
+  ~BitvectorSelect() {
+    delete[] bits_;
+    delete[] select_lut_;
+  };
 
   // Returns the postion of the rank-th 1 bit.
   // posistion is zero-based; rank is one-based.
@@ -94,8 +97,8 @@ class BitvectorSelect : public Bitvector {
     align(dst);
   }
 
-  static BitvectorSelect *deSerialize(char *&src) {
-    auto *bv_select = new BitvectorSelect();
+  static std::unique_ptr<BitvectorSelect> deSerialize(char *&src) {
+    auto bv_select = std::make_unique<BitvectorSelect>();
     memcpy(&(bv_select->num_bits_), src, sizeof(bv_select->num_bits_));
     src += sizeof(bv_select->num_bits_);
     memcpy(&(bv_select->sample_interval_), src,
@@ -111,11 +114,6 @@ class BitvectorSelect : public Bitvector {
     src += bv_select->selectLutSize();
     align(src);
     return bv_select;
-  }
-
-  void destroy() {
-    delete[] bits_;
-    delete[] select_lut_;
   }
 
  private:
