@@ -184,7 +184,7 @@ class LoudsSparse {
   static const position_t kRankBasicBlockSize = 512;
   static const position_t kSelectSampleInterval = 64;
 
-  std::vector<std::pair<std::string, uint64_t>> keys_values_sparse_;
+  std::vector<uint64_t> positions_sparse;
 
   level_t height_;       // trie height
   level_t start_level_;  // louds-sparse encoding starts at this level
@@ -231,7 +231,7 @@ LoudsSparse::LoudsSparse(const SuRFBuilder *builder) {
                                                   start_level_,
                                                   height_);
 
-  keys_values_sparse_ = builder->getSparseValues();
+  positions_sparse = builder->getSparseValues();
 }
 
 bool LoudsSparse::lookupKey(const std::string &key,
@@ -250,11 +250,8 @@ bool LoudsSparse::lookupKey(const std::string &key,
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-      if (keys_values_sparse_[value_pos].first == key) {
-        value = keys_values_sparse_[value_pos].second;
-        return true;
-      }
-      return false;
+      value = positions_sparse[value_pos];
+      return true;
     }
     // move to child
     node_num = getChildNodeNum(pos);
@@ -325,12 +322,8 @@ uint64_t LoudsSparse::serializedSize() const {
 }
 
 uint64_t LoudsSparse::getMemoryUsage() const {
-  size_t values_sparse_size_ = 0;
-  for (const auto &key_value: keys_values_sparse_) {
-    values_sparse_size_ += key_value.first.size() + 8;
-  }
   return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() +
-      louds_bits_->size() + values_sparse_size_);
+      louds_bits_->size() + positions_sparse.size() * 8);
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {
@@ -524,7 +517,7 @@ void LoudsSparse::Iter::moveToRightMostKey() {
 }
 
 uint64_t LoudsSparse::Iter::getValue() const {
-  return trie_->keys_values_sparse_[value_pos_[key_len_ - 1]].second;
+  return trie_->positions_sparse[value_pos_[key_len_ - 1]];
 }
 
 uint64_t LoudsSparse::Iter::getLastIteratorPosition() const {
