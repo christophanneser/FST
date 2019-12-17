@@ -181,7 +181,7 @@ class LoudsDense {
   static const position_t kNodeFanout = 256;
   static const position_t kRankBasicBlockSize = 512;
 
-  std::vector<uint64_t> keys_values_dense_;
+  std::vector<uint32_t > positions_dense_;
 
   level_t height_;
 
@@ -217,7 +217,7 @@ LoudsDense::LoudsDense(SuRFBuilder *builder) {
                                       height_);
 
   // todo make more efficient by completely moving this vector
-  keys_values_dense_ = builder->getDenseValues();
+  positions_dense_ = builder->getDenseOffsets();
 }
 
 bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
@@ -242,7 +242,7 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
       uint64_t value_index = label_bitmaps_->rank(pos) -
           child_indicator_bitmaps_->rank(pos) -
           1;  // + prefix but we do not support this so far
-      value = keys_values_dense_[value_index];
+      value = positions_dense_[value_index];
       return true;
     }
     node_num = getChildNodeNum(pos);
@@ -314,7 +314,7 @@ uint64_t LoudsDense::serializedSize() const {
 uint64_t LoudsDense::getMemoryUsage() const {
   return (sizeof(LoudsDense) + label_bitmaps_->size() +
       child_indicator_bitmaps_->size() + prefixkey_indicator_bits_->size()
-      + keys_values_dense_.size() * 8);
+      + positions_dense_.size() * 4);
 }
 
 position_t LoudsDense::getChildNodeNum(const position_t pos) const {
@@ -485,7 +485,7 @@ uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
 }
 
 uint64_t LoudsDense::Iter::getValue() const {
-  return trie_->keys_values_dense_[value_pos_[key_len_ - 1]];
+  return trie_->positions_dense_[value_pos_[key_len_ - 1]];
 }
 
 void LoudsDense::Iter::rankValuePosition(size_t pos) {

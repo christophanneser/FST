@@ -64,9 +64,9 @@ class SuRFBuilder {
   const std::vector<position_t> &getNodeCounts() const { return node_counts_; }
   level_t getSparseStartLevel() const { return sparse_start_level_; }
 
-  std::vector<uint64_t> getDenseValues() const { return positions_dense_; }
+  std::vector<uint32_t > getDenseOffsets() const { return positions_dense_; }
 
-  std::vector<uint64_t> getSparseValues() const { return positions_sparse_; }
+  std::vector<uint32_t > getSparseOffsets() const { return positions_sparse_; }
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) {
@@ -136,19 +136,19 @@ class SuRFBuilder {
   uint32_t sparse_dense_ratio_;
   level_t sparse_start_level_;
 
-  std::vector<std::vector<uint64_t>> positions_;
+  std::vector<std::vector<uint32_t >> positions_;
 
   // LOUDS-Sparse bit/byte vectors
   std::vector<std::vector<label_t>> labels_;
   std::vector<std::vector<word_t>> child_indicator_bits_;
   std::vector<std::vector<word_t>> louds_bits_;
-  std::vector<uint64_t> positions_sparse_;
+  std::vector<uint32_t > positions_sparse_;
 
   // LOUDS-Dense bit vectors
   std::vector<std::vector<word_t>> bitmap_labels_;
   std::vector<std::vector<word_t>> bitmap_child_indicator_bits_;
   std::vector<std::vector<word_t>> prefixkey_indicator_bits_;
-  std::vector<uint64_t> positions_dense_;
+  std::vector<uint32_t > positions_dense_;
 
   // auxiliary per level bookkeeping vectors
   std::vector<position_t> node_counts_;
@@ -305,6 +305,7 @@ inline void SuRFBuilder::determineCutoffLevel() {
     positions_sparse_.insert(positions_sparse_.end(), positions_[level].begin(),
                              positions_[level].end());
   }
+  positions_.clear();
 }
 
 inline uint64_t SuRFBuilder::computeDenseMem(const level_t downto_level) const {
@@ -374,7 +375,7 @@ void SuRFBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
 
 void SuRFBuilder::addLevel() {
   labels_.emplace_back(std::vector<label_t>());
-  positions_.emplace_back(std::vector<uint64_t>());
+  positions_.emplace_back(std::vector<uint32_t>());
   child_indicator_bits_.emplace_back(std::vector<word_t>());
   louds_bits_.emplace_back(std::vector<word_t>());
 

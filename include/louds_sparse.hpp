@@ -184,7 +184,7 @@ class LoudsSparse {
   static const position_t kRankBasicBlockSize = 512;
   static const position_t kSelectSampleInterval = 64;
 
-  std::vector<uint64_t> positions_sparse;
+  std::vector<uint32_t > positions_sparse_;
 
   level_t height_;       // trie height
   level_t start_level_;  // louds-sparse encoding starts at this level
@@ -231,7 +231,7 @@ LoudsSparse::LoudsSparse(const SuRFBuilder *builder) {
                                                   start_level_,
                                                   height_);
 
-  positions_sparse = builder->getSparseValues();
+  positions_sparse_ = builder->getSparseOffsets();
 }
 
 bool LoudsSparse::lookupKey(const std::string &key,
@@ -250,7 +250,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-      value = positions_sparse[value_pos];
+      value = positions_sparse_[value_pos];
       return true;
     }
     // move to child
@@ -323,7 +323,7 @@ uint64_t LoudsSparse::serializedSize() const {
 
 uint64_t LoudsSparse::getMemoryUsage() const {
   return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() +
-      louds_bits_->size() + positions_sparse.size() * 8);
+      louds_bits_->size() + positions_sparse_.size() * 4);
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {
@@ -517,7 +517,7 @@ void LoudsSparse::Iter::moveToRightMostKey() {
 }
 
 uint64_t LoudsSparse::Iter::getValue() const {
-  return trie_->positions_sparse[value_pos_[key_len_ - 1]];
+  return trie_->positions_sparse_[value_pos_[key_len_ - 1]];
 }
 
 uint64_t LoudsSparse::Iter::getLastIteratorPosition() const {
