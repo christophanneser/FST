@@ -1,5 +1,5 @@
-#ifndef SURFBUILDER_H_
-#define SURFBUILDER_H_
+#ifndef FSTBUILDER_H_
+#define FSTBUILDER_H_
 
 #include <cassert>
 #include <string>
@@ -10,15 +10,15 @@
 
 namespace fst {
 
-class SuRFBuilder {
+class FSTBuilder {
  public:
-  SuRFBuilder() : sparse_start_level_(0) {};
-  explicit SuRFBuilder(bool include_dense, uint32_t sparse_dense_ratio)
+  FSTBuilder() : sparse_start_level_(0) {};
+  explicit FSTBuilder(bool include_dense, uint32_t sparse_dense_ratio)
       : include_dense_(include_dense),
         sparse_dense_ratio_(sparse_dense_ratio),
         sparse_start_level_(0) {};
 
-  ~SuRFBuilder() = default;
+  ~FSTBuilder() = default;
 
   // Fills in the LOUDS-dense and sparse vectors (members of this class)
   // through a single scan of the sorted key list.
@@ -92,42 +92,38 @@ class SuRFBuilder {
   // This function is called after skipCommonPrefix. Therefore, it
   // guarantees that the stored prefix of key is unique in the trie.
   level_t insertKeyBytesToTrieUntilUnique(const std::string &key,
-                                          const uint64_t position,
+                                          uint64_t position,
                                           const std::string &next_key,
-                                          const level_t start_level);
+                                          level_t start_level);
 
-  // Fills in the suffix byte for key
-  inline void insertSuffix(const std::string &key, const level_t level);
-
-  inline bool isCharCommonPrefix(const label_t c, const level_t level) const;
-  inline bool isLevelEmpty(const level_t level) const;
-  inline void moveToNextItemSlot(const level_t level);
-  void insertKeyByte(const char c, const level_t level,
-                     const bool is_start_of_node, const bool is_term);
-  inline void storeSuffix(const level_t level, const word_t suffix);
+  inline bool isCharCommonPrefix(label_t c, level_t level) const;
+  inline bool isLevelEmpty(level_t level) const;
+  inline void moveToNextItemSlot(level_t level);
+  void insertKeyByte(char c, level_t level,
+                     bool is_start_of_node, bool is_term);
 
   // Compute sparse_start_level_ according to the pre-defined
   // size ratio between Sparse and Dense levels.
   // Dense size < Sparse size / sparse_dense_ratio_
   inline void determineCutoffLevel();
 
-  inline uint64_t computeDenseMem(const level_t downto_level) const;
-  inline uint64_t computeSparseMem(const level_t start_level) const;
+  inline uint64_t computeDenseMem(level_t downto_level) const;
+  inline uint64_t computeSparseMem(level_t start_level) const;
 
   // Fill in the LOUDS-Dense vectors based on the built
   // Sparse vectors.
   // Called after sparse_start_level_ is set.
   void buildDense();
 
-  void initDenseVectors(const level_t level);
-  void setLabelAndChildIndicatorBitmap(const level_t level,
-                                       const position_t node_num,
-                                       const position_t pos);
+  void initDenseVectors(level_t level);
+  void setLabelAndChildIndicatorBitmap(level_t level,
+                                       position_t node_num,
+                                       position_t pos);
 
-  position_t getNumItems(const level_t level) const;
+  position_t getNumItems(level_t level) const;
   void addLevel();
-  bool isStartOfNode(const level_t level, const position_t pos) const;
-  bool isTerminator(const level_t level, const position_t pos) const;
+  bool isStartOfNode(level_t level, position_t pos) const;
+  bool isTerminator(level_t level, position_t pos) const;
 
  private:
   // trie level < sparse_start_level_: LOUDS-Dense
@@ -155,8 +151,8 @@ class SuRFBuilder {
   std::vector<bool> is_last_item_terminator_;
 };
 
-void SuRFBuilder::build(const std::vector<std::string> &keys,
-                        const std::vector<uint64_t> &values) {
+void FSTBuilder::build(const std::vector<std::string> &keys,
+                       const std::vector<uint64_t> &values) {
   assert(keys.size() > 0);
   buildSparse(keys, values);
   if (include_dense_) {
@@ -165,8 +161,8 @@ void SuRFBuilder::build(const std::vector<std::string> &keys,
   }
 }
 
-void SuRFBuilder::buildSparse(const std::vector<std::string> &keys,
-                              const std::vector<uint64_t> &values) {
+void FSTBuilder::buildSparse(const std::vector<std::string> &keys,
+                             const std::vector<uint64_t> &values) {
   for (position_t i = 0; i < keys.size(); i++) {
     level_t level = skipCommonPrefix(keys[i]);
     position_t curpos = i;
@@ -180,7 +176,7 @@ void SuRFBuilder::buildSparse(const std::vector<std::string> &keys,
   }
 }
 
-level_t SuRFBuilder::skipCommonPrefix(const std::string &key) {
+level_t FSTBuilder::skipCommonPrefix(const std::string &key) {
   level_t level = 0;
   while (level < key.length() &&
       isCharCommonPrefix((label_t) key[level], level)) {
@@ -190,7 +186,7 @@ level_t SuRFBuilder::skipCommonPrefix(const std::string &key) {
   return level;
 }
 
-level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
+level_t FSTBuilder::insertKeyBytesToTrieUntilUnique(
     const std::string &key,
     const uint64_t position,
     const std::string &next_key,
@@ -206,7 +202,7 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
   }
 
   // After skipping the common prefix, the first following byte
-  // shoud be in an the node as the previous key.
+  // should be in the node as the previous key.
   insertKeyByte(key[level], level, is_start_of_node, is_term);
   level++;
 
@@ -228,17 +224,17 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
   return level;
 }
 
-inline bool SuRFBuilder::isCharCommonPrefix(const label_t c,
-                                            const level_t level) const {
+inline bool FSTBuilder::isCharCommonPrefix(const label_t c,
+                                           const level_t level) const {
   return (level < getTreeHeight()) && (!is_last_item_terminator_[level]) &&
       (c == labels_[level].back());
 }
 
-inline bool SuRFBuilder::isLevelEmpty(const level_t level) const {
-  return (level >= getTreeHeight()) || (labels_[level].size() == 0);
+inline bool FSTBuilder::isLevelEmpty(const level_t level) const {
+  return (level >= getTreeHeight()) || (labels_[level].empty());
 }
 
-inline void SuRFBuilder::moveToNextItemSlot(const level_t level) {
+inline void FSTBuilder::moveToNextItemSlot(const level_t level) {
   assert(level < getTreeHeight());
   position_t num_items = getNumItems(level);
   if (num_items % kWordSize == 0) {
@@ -247,9 +243,9 @@ inline void SuRFBuilder::moveToNextItemSlot(const level_t level) {
   }
 }
 
-void SuRFBuilder::insertKeyByte(const char c, const level_t level,
-                                const bool is_start_of_node,
-                                const bool is_term) {
+void FSTBuilder::insertKeyByte(const char c, const level_t level,
+                               const bool is_start_of_node,
+                               const bool is_term) {
   // level should be at most equal to tree height
   if (level >= getTreeHeight()) addLevel();
 
@@ -269,7 +265,7 @@ void SuRFBuilder::insertKeyByte(const char c, const level_t level,
   moveToNextItemSlot(level);
 }
 
-inline void SuRFBuilder::determineCutoffLevel() {
+inline void FSTBuilder::determineCutoffLevel() {
   level_t cutoff_level = 0;
   uint64_t dense_mem = computeDenseMem(cutoff_level);
   uint64_t sparse_mem = computeSparseMem(cutoff_level);
@@ -296,7 +292,7 @@ inline void SuRFBuilder::determineCutoffLevel() {
   positions_.clear();
 }
 
-inline uint64_t SuRFBuilder::computeDenseMem(const level_t downto_level) const {
+inline uint64_t FSTBuilder::computeDenseMem(const level_t downto_level) const {
   assert(downto_level <= getTreeHeight());
   uint64_t mem = 0;
   for (level_t level = 0; level < downto_level; level++) {
@@ -306,7 +302,7 @@ inline uint64_t SuRFBuilder::computeDenseMem(const level_t downto_level) const {
   return mem;
 }
 
-inline uint64_t SuRFBuilder::computeSparseMem(const level_t start_level) const {
+inline uint64_t FSTBuilder::computeSparseMem(const level_t start_level) const {
   uint64_t mem = 0;
   for (level_t level = start_level; level < getTreeHeight(); level++) {
     position_t num_items = labels_[level].size();
@@ -315,7 +311,7 @@ inline uint64_t SuRFBuilder::computeSparseMem(const level_t start_level) const {
   return mem;
 }
 
-void SuRFBuilder::buildDense() {
+void FSTBuilder::buildDense() {
   for (level_t level = 0; level < sparse_start_level_; level++) {
     initDenseVectors(level);
     if (getNumItems(level) == 0) continue;
@@ -338,10 +334,10 @@ void SuRFBuilder::buildDense() {
   }
 }
 
-void SuRFBuilder::initDenseVectors(const level_t level) {
-  bitmap_labels_.push_back(std::vector<word_t>());
-  bitmap_child_indicator_bits_.push_back(std::vector<word_t>());
-  prefixkey_indicator_bits_.push_back(std::vector<word_t>());
+void FSTBuilder::initDenseVectors(const level_t level) {
+  bitmap_labels_.emplace_back();
+  bitmap_child_indicator_bits_.emplace_back(std::vector<word_t>());
+  prefixkey_indicator_bits_.emplace_back(std::vector<word_t>());
 
   for (position_t nc = 0; nc < node_counts_[level]; nc++) {
     for (int i = 0; i < (int) kFanout; i += kWordSize) {
@@ -352,16 +348,16 @@ void SuRFBuilder::initDenseVectors(const level_t level) {
   }
 }
 
-void SuRFBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
-                                                  const position_t node_num,
-                                                  const position_t pos) {
+void FSTBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
+                                                 const position_t node_num,
+                                                 const position_t pos) {
   label_t label = labels_[level][pos];
   setBit(bitmap_labels_[level], node_num * kFanout + label);
   if (readBit(child_indicator_bits_[level], pos))
     setBit(bitmap_child_indicator_bits_[level], node_num * kFanout + label);
 }
 
-void SuRFBuilder::addLevel() {
+void FSTBuilder::addLevel() {
   labels_.emplace_back(std::vector<label_t>());
   positions_.emplace_back(std::vector<uint64_t>());
   child_indicator_bits_.emplace_back(std::vector<word_t>());
@@ -374,21 +370,21 @@ void SuRFBuilder::addLevel() {
   louds_bits_[getTreeHeight() - 1].push_back(0);
 }
 
-position_t SuRFBuilder::getNumItems(const level_t level) const {
+position_t FSTBuilder::getNumItems(const level_t level) const {
   return labels_[level].size();
 }
 
-bool SuRFBuilder::isStartOfNode(const level_t level,
-                                const position_t pos) const {
+bool FSTBuilder::isStartOfNode(const level_t level,
+                               const position_t pos) const {
   return readBit(louds_bits_[level], pos);
 }
 
-bool SuRFBuilder::isTerminator(const level_t level,
-                               const position_t pos) const {
+bool FSTBuilder::isTerminator(const level_t level,
+                              const position_t pos) const {
   label_t label = labels_[level][pos];
   return ((label == kTerminator) &&
       !readBit(child_indicator_bits_[level], pos));
 }
 }  // namespace fst
 
-#endif  // SURFBUILDER_H_
+#endif  // FSTBUILDER_H_

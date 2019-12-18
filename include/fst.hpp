@@ -156,7 +156,7 @@ class FST {
  private:
   std::unique_ptr<LoudsDense> louds_dense_;
   std::unique_ptr<LoudsSparse> louds_sparse_;
-  std::unique_ptr<SuRFBuilder> builder_;
+  std::unique_ptr<FSTBuilder> builder_;
   FST::Iter iter_;
   FST::Iter end_;
 };
@@ -164,11 +164,10 @@ class FST {
 void FST::create(const std::vector<std::string> &keys,
                  const std::vector<uint64_t> &values, const bool include_dense,
                  const uint32_t sparse_dense_ratio) {
-  // todo builder and actual louds dense store all bitmaps and values twice
-  builder_ = std::make_unique<SuRFBuilder>(include_dense, sparse_dense_ratio);
+  builder_ = std::make_unique<FSTBuilder>(include_dense, sparse_dense_ratio);
   builder_->build(keys, values);
-  louds_dense_ = std::make_unique<LoudsDense>(builder_.get());
-  louds_sparse_ = std::make_unique<LoudsSparse>(builder_.get());
+  louds_dense_ = std::make_unique<LoudsDense>(builder_.get(), keys);
+  louds_sparse_ = std::make_unique<LoudsSparse>(builder_.get(), keys);
   iter_ = FST::Iter(this);
   builder_.reset();
 }

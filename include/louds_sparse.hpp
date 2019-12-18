@@ -17,7 +17,7 @@ class LoudsSparse {
    public:
     Iter()
         : is_valid_(false),
-          trie_(0),
+          trie_(nullptr),
           start_level_(0),
           start_node_num_(0),
           key_len_(0),
@@ -46,10 +46,6 @@ class LoudsSparse {
 
     std::string getKey() const;
 
-    int getSuffix(word_t *suffix) const;
-
-    std::string getKeyWithSuffix(unsigned *bitlen) const;
-
     position_t getStartNodeNum() const { return start_node_num_; };
 
     void setStartNodeNum(position_t node_num) { start_node_num_ = node_num; };
@@ -73,11 +69,11 @@ class LoudsSparse {
     void operator--(int);
 
    private:
-    void append(const position_t pos);
+    void append(position_t pos);
 
-    void append(const label_t label, const position_t pos);
+    void append(label_t label, position_t pos);
 
-    void set(const level_t level, const position_t pos);
+    void set(level_t level, position_t pos);
 
    private:
     bool is_valid_;  // True means the iter currently points to a valid key
@@ -101,16 +97,16 @@ class LoudsSparse {
  public:
   LoudsSparse() {};
 
-  LoudsSparse(const SuRFBuilder *builder);
+  LoudsSparse(const FSTBuilder *builder, const std::vector<std::string> &keys);
 
   ~LoudsSparse() {}
 
   // point query: trie walk starts at node "in_node_num" instead of root
   // in_node_num is provided by louds-dense's lookupKey function
-  bool lookupKey(const std::string &key, const position_t in_node_num,
+  bool lookupKey(const std::string &key, position_t in_node_num,
                  uint64_t &value) const;
 
-  void moveToKeyGreaterThan(const std::string &key, const bool inclusive,
+  void moveToKeyGreaterThan(const std::string &key, bool inclusive,
                             LoudsSparse::Iter &iter) const;
 
   level_t getHeight() const { return height_; };
@@ -159,25 +155,25 @@ class LoudsSparse {
   }
 
  private:
-  position_t getChildNodeNum(const position_t pos) const;
+  position_t getChildNodeNum(position_t pos) const;
 
-  position_t getFirstLabelPos(const position_t node_num) const;
+  position_t getFirstLabelPos(position_t node_num) const;
 
-  position_t getLastLabelPos(const position_t node_num) const;
+  position_t getLastLabelPos(position_t node_num) const;
 
-  position_t getSuffixPos(const position_t pos) const;
+  position_t getSuffixPos(position_t pos) const;
 
-  position_t nodeSize(const position_t pos) const;
+  position_t nodeSize(position_t pos) const;
 
-  bool isEndofNode(const position_t pos) const;
+  bool isEndofNode(position_t pos) const;
 
-  void moveToLeftInNextSubtrie(position_t pos, const position_t node_size,
-                               const label_t label,
+  void moveToLeftInNextSubtrie(position_t pos, position_t node_size,
+                               label_t label,
                                LoudsSparse::Iter &iter) const;
 
   // return value indicates potential false positive
-  bool compareSuffixGreaterThan(const position_t pos, const std::string &key,
-                                const level_t level, const bool inclusive,
+  bool compareSuffixGreaterThan(position_t pos, const std::string &key,
+                                level_t level, bool inclusive,
                                 LoudsSparse::Iter &iter) const;
 
  private:
@@ -196,9 +192,13 @@ class LoudsSparse {
   std::unique_ptr<LabelVector> labels_;
   std::unique_ptr<BitvectorRank> child_indicator_bits_;
   std::unique_ptr<BitvectorSelect> louds_bits_;
+  // pointer to the original data
+  const std::vector<std::string> *keys_;
 };
 
-LoudsSparse::LoudsSparse(const SuRFBuilder *builder) {
+LoudsSparse::LoudsSparse(const FSTBuilder *builder,
+                         const std::vector<std::string> &keys) {
+  keys_ = &keys;
   height_ = builder->getLabels().size();
   start_level_ = builder->getSparseStartLevel();
 
@@ -251,8 +251,9 @@ bool LoudsSparse::lookupKey(const std::string &key,
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
       value = positions_sparse_[value_pos];
-      return true;
+      return (*keys_)[value] == key;
     }
+
     // move to child
     node_num = getChildNodeNum(pos);
     pos = getFirstLabelPos(node_num);
@@ -575,7 +576,6 @@ void LoudsSparse::Iter::operator--(int) {
   set(key_len_ - 1, pos);
   return moveToRightMostKey();
 }
-
 }  // namespace fst
 
 #endif  // LOUDSSPARSE_H_

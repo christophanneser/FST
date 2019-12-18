@@ -1,13 +1,12 @@
 #include "gtest/gtest.h"
+#include <random>
 #include <string>
 #include <vector>
 #include "config.hpp"
 #include "fst.hpp"
 #include <chrono>
 
-namespace fst {
-
-namespace surftest {
+namespace fst::surftest {
 
 static const level_t kSuffixLen = 8;
 static const uint32_t number_keys = 25000000;
@@ -27,7 +26,7 @@ class SuRFInt32Test : public ::testing::Test {
       value += kIntTestSkip;
       values_uint64[i] = i;
     }
-    std::random_shuffle(values_uint64.begin(), values_uint64.end());
+    std::shuffle(values_uint64.begin(), values_uint64.end(), std::mt19937(std::random_device()()));
 
     std::cout << "number keys: " << std::to_string(keys_int32.size() / 1000000)
               << "M" << std::endl;
@@ -61,7 +60,7 @@ TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
   for (uint32_t i = 0; i < number_keys; i++) {
     bool exist = fst->lookupKey(lookup_key, value);
     ASSERT_TRUE(exist);
-    ASSERT_EQ(value, values_uint64[i]);
+    ASSERT_EQ(i, value);
     lookup_key += kIntTestSkip;
   }
 }
@@ -78,12 +77,11 @@ TEST_F (SuRFInt32Test, PointLookupTests) {
     uint64_t retrieved_value = 0;
     bool exist = fst->lookupKey(keys_int32[i], retrieved_value);
     ASSERT_TRUE(exist);
-    ASSERT_EQ(values_uint64[i], retrieved_value);
+    ASSERT_EQ(i, retrieved_value);
   }
   finish = std::chrono::high_resolution_clock::now();
   elapsed = finish - start;
   std::cout << "query time " << std::to_string(elapsed.count()) << std::endl;
-
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
@@ -256,7 +254,6 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_FALSE(iterators.first != iterators.second);
 }
 
-} // namespace surftest
 } // namespace fst
 
 int main(int argc, char *argv[]) {
