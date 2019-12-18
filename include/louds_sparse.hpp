@@ -106,7 +106,7 @@ class LoudsSparse {
   bool lookupKey(const std::string &key, position_t in_node_num,
                  uint64_t &value) const;
 
-  void moveToKeyGreaterThan(const std::string &key, bool inclusive,
+  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
                             LoudsSparse::Iter &iter) const;
 
   level_t getHeight() const { return height_; };
@@ -264,32 +264,40 @@ bool LoudsSparse::lookupKey(const std::string &key,
   return false;
 }
 
-void LoudsSparse::moveToKeyGreaterThan(const std::string &key,
+void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
                                        const bool inclusive,
                                        LoudsSparse::Iter &iter) const {
   position_t node_num = iter.getStartNodeNum();
   position_t pos = getFirstLabelPos(node_num);
 
   level_t level;
-  for (level = start_level_; level < key.length(); level++) {
+  for (level = start_level_; level < searched_key.length(); level++) {
     position_t node_size = nodeSize(pos);
     // if no exact match
-    if (!labels_->search((label_t) key[level], pos, node_size)) {
+    if (!labels_->search((label_t) searched_key[level], pos, node_size)) {
       // todo -> do not return false, but just move to the next bigger key?
-      moveToLeftInNextSubtrie(pos, node_size, key[level], iter);
+      moveToLeftInNextSubtrie(pos, node_size, searched_key[level], iter);
       return;
     }
 
-    iter.append(key[level], pos);
+    iter.append(searched_key[level], pos);
 
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
-      if (inclusive) {
-        iter.is_valid_ = true;
-      } else {
-        iter++;
-      }
       iter.rankValuePosition(pos);
+      auto found_key = (*keys_)[iter.getValue()];
+
+      if (found_key > searched_key) {
+        iter.is_valid_ = true;
+      } else if (found_key < searched_key) {
+        iter++;
+      } else { // found_key == searched_key
+        if (!inclusive)
+          iter++;
+        else
+          iter.is_valid_ = true;
+      }
+      //iter.rankValuePosition(pos);
       return;
     }
     // move to child
@@ -306,7 +314,7 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &key,
     return;
   }
 
-  if (key.length() <= level) {
+  if (searched_key.length() <= level) {
     iter.moveToLeftMostKey();
     return;
   }

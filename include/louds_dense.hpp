@@ -132,7 +132,7 @@ class LoudsDense {
                  uint64_t &value) const;
 
   // return value indicates potential false positive
-  void moveToKeyGreaterThan(const std::string &key, bool inclusive,
+  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
                             LoudsDense::Iter &iter) const;
 
   uint64_t getHeight() const { return height_; };
@@ -184,7 +184,7 @@ class LoudsDense {
   std::unique_ptr<BitvectorRank> child_indicator_bitmaps_;
   std::unique_ptr<BitvectorRank> prefixkey_indicator_bits_;
   // const pointer to the original keys
-  const std::vector<std::string> *keys_;
+  const std::vector<std::string> *keys_{};
 };
 
 const position_t LoudsDense::kNodeFanout;
@@ -254,7 +254,7 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   return true;
 }
 
-void LoudsDense::moveToKeyGreaterThan(const std::string &key,
+void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
                                       const bool inclusive,
                                       LoudsDense::Iter &iter) const {
   position_t node_num = 0;
@@ -262,7 +262,7 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &key,
   for (level_t level = 0; level < height_; level++) {
     // if is_at_prefix_key_, pos is at the next valid position in the child node
     pos = node_num * kNodeFanout;
-    if (level >= key.length()) {  // if run out of searchKey bytes
+    if (level >= searched_key.length()) {  // if run out of searchKey bytes
       // CA: todo if run out, then traverse to leftmost key
       iter.append(getNextPos(pos - 1));
       if (prefixkey_indicator_bits_->readBit(
@@ -275,24 +275,33 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &key,
       return;
     }
 
-    pos += (label_t) key[level];
+    pos += (label_t) searched_key[level];
     iter.append(pos);
 
     // if no exact match
     if (!label_bitmaps_->readBit(pos)) {
+      // CA: todo need test case to check if this is correct
       iter++;
       return;
     }
 
     // if trie branch terminates
     if (!child_indicator_bitmaps_->readBit(pos)) {
-      if (inclusive) {
+      iter.rankValuePosition(pos);
+      auto found_key = (*keys_)[iter.getValue()];
+
+      if (found_key > searched_key) {
         iter.setFlags(true, true, true, true);
-      } else {
-        iter++;
+      } else if (found_key < searched_key) {
+        iter++; // no exact match, inclusive flag is not relevant
+      } else { // found_key == searched_key
+        if (!inclusive)
+          iter++;
+        else
+          iter.setFlags(true, true, true, true);
       }
       // set value index here
-      iter.rankValuePosition(pos);
+      //iter.rankValuePosition(pos);
       return;
     }
     node_num = getChildNodeNum(pos);

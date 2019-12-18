@@ -9,7 +9,7 @@
 namespace fst::surftest {
 
 static const level_t kSuffixLen = 8;
-static const uint32_t number_keys = 25000000;
+static const uint32_t number_keys = 250000;
 static const uint32_t kIntTestSkip = 9;
 
 class SuRFInt32Test : public ::testing::Test {
@@ -26,7 +26,9 @@ class SuRFInt32Test : public ::testing::Test {
       value += kIntTestSkip;
       values_uint64[i] = i;
     }
-    std::shuffle(values_uint64.begin(), values_uint64.end(), std::mt19937(std::random_device()()));
+    std::shuffle(values_uint64.begin(),
+                 values_uint64.end(),
+                 std::mt19937(std::random_device()()));
 
     std::cout << "number keys: " << std::to_string(keys_int32.size() / 1000000)
               << "M" << std::endl;
@@ -39,7 +41,8 @@ class SuRFInt32Test : public ::testing::Test {
 };
 
 TEST_F(SuRFInt32Test, PointLookupTestsNonExistingKeys) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
 
   std::vector<uint32_t> lookup_keys(number_keys);
   uint32_t lookup_key = 7;
@@ -52,7 +55,8 @@ TEST_F(SuRFInt32Test, PointLookupTestsNonExistingKeys) {
 }
 
 TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
 
   std::vector<uint32_t> lookup_keys(number_keys);
   uint32_t lookup_key = 3;
@@ -67,7 +71,8 @@ TEST_F(SuRFInt32Test, PointLookupTestsExistingKeysInt32) {
 
 TEST_F (SuRFInt32Test, PointLookupTests) {
   auto start = std::chrono::high_resolution_clock::now();
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
   std::cout << "build time " << std::to_string(elapsed.count()) << std::endl;
@@ -84,43 +89,48 @@ TEST_F (SuRFInt32Test, PointLookupTests) {
   std::cout << "query time " << std::to_string(elapsed.count()) << std::endl;
 }
 
+// todo adapt iterator logic
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanExclusive) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
+
   FST::Iter
       iter = fst->moveToKeyGreaterThan(keys_int32[start_position - 1], false);
   for (; start_position < keys_int32.size(); start_position++) {
     ASSERT_TRUE(iter.isValid());
-    ASSERT_EQ(keys_int32[start_position].compare(iter.getKey()), 0);
+    ASSERT_EQ(start_position, iter.getValue());
     iter++;
   }
   ASSERT_FALSE(iter.isValid());
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   FST::Iter iter = fst->moveToKeyGreaterThan(keys_int32[start_position], true);
   for (; start_position < keys_int32.size(); start_position++) {
     ASSERT_TRUE(iter.isValid());
-    ASSERT_EQ(keys_int32[start_position].compare(iter.getKey()), 0);
+    ASSERT_EQ(start_position, iter.getValue());
     iter++;
   }
   ASSERT_FALSE(iter.isValid());
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
   auto iterators = fst->lookupRange(keys_int32[start_position - 1],
-                                     false,
-                                     keys_int32[end_position],
-                                     false);
+                                    false,
+                                    keys_int32[end_position],
+                                    false);
 
   while (iterators.first != iterators.second) {
     ASSERT_TRUE(iterators.first.isValid());
-    ASSERT_EQ(keys_int32[start_position].compare(iterators.first.getKey()), 0);
+    ASSERT_EQ(start_position, iterators.first.getValue());
     iterators.first++;
     start_position++;
   }
@@ -128,13 +138,14 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 7234;
   size_t end_position = 7235;
   auto iterators = fst->lookupRange(keys_int32[start_position - 1],
-                                     false,
-                                     keys_int32[end_position],
-                                     false);
+                                    false,
+                                    keys_int32[end_position],
+                                    false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -142,9 +153,9 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
   iterators = fst->lookupRange(keys_int32[start_position - 1],
-                                false,
-                                keys_int32[end_position],
-                                true);
+                               false,
+                               keys_int32[end_position],
+                               true);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -152,9 +163,9 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
 
   iterators = fst->lookupRange(keys_int32[start_position],
-                                true,
-                                keys_int32[end_position],
-                                true);
+                               true,
+                               keys_int32[end_position],
+                               true);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -171,13 +182,14 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = keys_int32.size() - 10;
   size_t end_position = keys_int32.size() - 1;
   auto iterators = fst->lookupRange(keys_int32[start_position - 1],
-                                     false,
-                                     keys_int32[end_position],
-                                     false);
+                                    false,
+                                    keys_int32[end_position],
+                                    false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -185,9 +197,9 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
   iterators = fst->lookupRange(keys_int32[start_position - 1],
-                                false,
-                                keys_int32[end_position],
-                                true);
+                               false,
+                               keys_int32[end_position],
+                               true);
 
   ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
   ASSERT_TRUE(iterators.first.isValid());
@@ -205,13 +217,14 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
-  auto fst = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 0;
   size_t end_position = 10;
   auto iterators = fst->lookupRange(uint32ToString(0),
-                                     false,
-                                     keys_int32[end_position],
-                                     false);
+                                    false,
+                                    keys_int32[end_position],
+                                    false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -219,9 +232,9 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
   iterators = fst->lookupRange(keys_int32[start_position],
-                                true,
-                                keys_int32[end_position],
-                                false);
+                               true,
+                               keys_int32[end_position],
+                               false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
@@ -229,9 +242,9 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
   ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
 
   iterators = fst->lookupRange(keys_int32[start_position],
-                                false,
-                                keys_int32[end_position],
-                                false);
+                               false,
+                               keys_int32[end_position],
+                               false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
