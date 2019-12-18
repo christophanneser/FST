@@ -18,7 +18,7 @@ class SuRFBuilder {
         sparse_dense_ratio_(sparse_dense_ratio),
         sparse_start_level_(0) {};
 
-  ~SuRFBuilder() {};
+  ~SuRFBuilder() = default;
 
   // Fills in the LOUDS-dense and sparse vectors (members of this class)
   // through a single scan of the sorted key list.
@@ -64,9 +64,9 @@ class SuRFBuilder {
   const std::vector<position_t> &getNodeCounts() const { return node_counts_; }
   level_t getSparseStartLevel() const { return sparse_start_level_; }
 
-  std::vector<uint32_t > getDenseOffsets() const { return positions_dense_; }
+  std::vector<uint64_t> getDenseOffsets() const { return positions_dense_; }
 
-  std::vector<uint32_t > getSparseOffsets() const { return positions_sparse_; }
+  std::vector<uint64_t> getSparseOffsets() const { return positions_sparse_; }
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) {
@@ -136,19 +136,19 @@ class SuRFBuilder {
   uint32_t sparse_dense_ratio_;
   level_t sparse_start_level_;
 
-  std::vector<std::vector<uint32_t >> positions_;
+  std::vector<std::vector<uint64_t>> positions_;
 
   // LOUDS-Sparse bit/byte vectors
   std::vector<std::vector<label_t>> labels_;
   std::vector<std::vector<word_t>> child_indicator_bits_;
   std::vector<std::vector<word_t>> louds_bits_;
-  std::vector<uint32_t > positions_sparse_;
+  std::vector<uint64_t> positions_sparse_;
 
   // LOUDS-Dense bit vectors
   std::vector<std::vector<word_t>> bitmap_labels_;
   std::vector<std::vector<word_t>> bitmap_child_indicator_bits_;
   std::vector<std::vector<word_t>> prefixkey_indicator_bits_;
-  std::vector<uint32_t > positions_dense_;
+  std::vector<uint64_t> positions_dense_;
 
   // auxiliary per level bookkeeping vectors
   std::vector<position_t> node_counts_;
@@ -226,18 +226,6 @@ level_t SuRFBuilder::insertKeyBytesToTrieUntilUnique(
   }
   positions_[level - 1].emplace_back(position);
   return level;
-
-  // The last byte inserted makes key unique in the trie.
-
-  // if (level < key.length()) {
-  // insertKeyByte(key[level], level, is_start_of_node, is_term);
-  //} else {
-  // is_term = true;
-  // insertKeyByte(kTerminator, level, is_start_of_node, is_term);
-  //}
-  // level++;
-  //
-  // return level;
 }
 
 inline bool SuRFBuilder::isCharCommonPrefix(const label_t c,
@@ -375,7 +363,7 @@ void SuRFBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
 
 void SuRFBuilder::addLevel() {
   labels_.emplace_back(std::vector<label_t>());
-  positions_.emplace_back(std::vector<uint32_t>());
+  positions_.emplace_back(std::vector<uint64_t>());
   child_indicator_bits_.emplace_back(std::vector<word_t>());
   louds_bits_.emplace_back(std::vector<word_t>());
 
@@ -401,7 +389,6 @@ bool SuRFBuilder::isTerminator(const level_t level,
   return ((label == kTerminator) &&
       !readBit(child_indicator_bits_[level], pos));
 }
-
 }  // namespace fst
 
 #endif  // SURFBUILDER_H_

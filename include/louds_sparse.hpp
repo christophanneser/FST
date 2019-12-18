@@ -184,7 +184,7 @@ class LoudsSparse {
   static const position_t kRankBasicBlockSize = 512;
   static const position_t kSelectSampleInterval = 64;
 
-  std::vector<uint32_t > positions_sparse_;
+  std::vector<uint64_t> positions_sparse_;
 
   level_t height_;       // trie height
   level_t start_level_;  // louds-sparse encoding starts at this level

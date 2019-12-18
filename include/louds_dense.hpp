@@ -181,7 +181,7 @@ class LoudsDense {
   static const position_t kNodeFanout = 256;
   static const position_t kRankBasicBlockSize = 512;
 
-  std::vector<uint32_t > positions_dense_;
+  std::vector<uint64_t> positions_dense_;
 
   level_t height_;
 
