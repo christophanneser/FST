@@ -187,6 +187,9 @@ class LoudsDense {
   const std::vector<std::string> *keys_;
 };
 
+const position_t LoudsDense::kNodeFanout;
+const position_t LoudsDense::kRankBasicBlockSize;
+
 LoudsDense::LoudsDense(FSTBuilder *builder,
                        const std::vector<std::string> &keys) {
   keys_ = &keys;

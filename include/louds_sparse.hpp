@@ -196,6 +196,9 @@ class LoudsSparse {
   const std::vector<std::string> *keys_;
 };
 
+const position_t LoudsSparse::kRankBasicBlockSize;
+const position_t LoudsSparse::kSelectSampleInterval;
+
 LoudsSparse::LoudsSparse(const FSTBuilder *builder,
                          const std::vector<std::string> &keys) {
   keys_ = &keys;
