@@ -148,8 +148,8 @@ class BitvectorSelect : public Bitvector {
 
  private:
   position_t sample_interval_;
-  position_t num_ones_;
-  position_t *select_lut_;  // select look-up table
+  position_t num_ones_{};
+  position_t *select_lut_{};  // select look-up table
 };
 
 }  // namespace fst

@@ -107,7 +107,7 @@ class BitvectorRank : public Bitvector {
   }
 
   position_t basic_block_size_;
-  position_t *rank_lut_;  // rank look-up table
+  position_t *rank_lut_{};  // rank look-up table
 };
 
 }  // namespace fst

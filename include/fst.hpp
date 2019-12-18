@@ -17,7 +17,7 @@ class FST {
    public:
     Iter() = default;
 
-    Iter(const FST *filter) {
+    explicit Iter(const FST *filter) {
       dense_iter_ = LoudsDense::Iter(filter->louds_dense_.get());
       sparse_iter_ = LoudsSparse::Iter(filter->louds_sparse_.get());
     }

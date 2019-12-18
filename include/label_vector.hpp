@@ -12,7 +12,7 @@ class LabelVector {
  public:
   LabelVector() : num_bytes_(0), labels_(nullptr){};
 
-  LabelVector(const std::vector<std::vector<label_t> > &labels_per_level,
+  explicit LabelVector(const std::vector<std::vector<label_t> > &labels_per_level,
               const level_t start_level = 0,
               level_t end_level = 0 /* non-inclusive */) {
     if (end_level == 0) end_level = labels_per_level.size();

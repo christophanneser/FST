@@ -132,8 +132,8 @@ class SuRFBuilder {
  private:
   // trie level < sparse_start_level_: LOUDS-Dense
   // trie level >= sparse_start_level_: LOUDS-Sparse
-  bool include_dense_;
-  uint32_t sparse_dense_ratio_;
+  bool include_dense_{};
+  uint32_t sparse_dense_ratio_{};
   level_t sparse_start_level_;
 
   std::vector<std::vector<uint64_t>> positions_;
