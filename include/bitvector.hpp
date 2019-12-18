@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <vector>
+
 #include "config.hpp"
 
 namespace fst {

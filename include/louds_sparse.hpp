@@ -23,7 +23,7 @@ class LoudsSparse {
           key_len_(0),
           is_at_terminator_(false) {};
 
-    Iter(LoudsSparse *trie)
+    explicit Iter(LoudsSparse *trie)
         : is_valid_(false),
           trie_(trie),
           start_node_num_(0),
