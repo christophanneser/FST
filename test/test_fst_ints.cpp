@@ -9,7 +9,7 @@
 namespace fst::surftest {
 
 static const uint32_t number_keys = 250000;
-static const uint32_t kIntTestSkip = 9;
+static const uint32_t kIntTestSkip = 400;
 
 class SuRFInt32Test : public ::testing::Test {
  public:
@@ -39,7 +39,7 @@ class SuRFInt32Test : public ::testing::Test {
                                       size_t offset) {
     // linear search, could be replaced through binary search
     char current = keys_int32[offset][level];
-    while (current != keys_int32[offset][level])
+    while (current == keys_int32[offset][level])
       offset++;
     return offset;
   }
@@ -126,13 +126,13 @@ TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
   ASSERT_FALSE(iter.isValid());
 }
 
-// todo new test case to check range lookup for keys that do not have the full length
 TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusiveShortKeys) {
   auto fst =
       std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
-  size_t start_position = 7234;
-  auto expected_offset = GetFirstKeyAfterLevelChanges(1, start_position);
-  std::string key = keys_int32[expected_offset].substr(0, 1);
+  size_t start_position = 42134;
+  level_t level = 2;
+  auto expected_offset = GetFirstKeyAfterLevelChanges(level, start_position);
+  std::string key = keys_int32[expected_offset].substr(0, level + 1);
 
   FST::Iter iter = fst->moveToKeyGreaterThan(key, true);
 
@@ -143,7 +143,6 @@ TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusiveShortKeys) {
 
   ASSERT_TRUE(iter.isValid());
   ASSERT_EQ(expected_offset, iter.getValue());
-
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
@@ -168,8 +167,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
   auto fst =
       std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
-  size_t start_position = 7234;
-  size_t end_position = 7235;
+  size_t start_position = 72334;
+  size_t end_position = 78835;
   auto iterators = fst->lookupRange(keys_int32[start_position - 1],
                                     false,
                                     keys_int32[end_position],
@@ -177,8 +176,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position);
 
   iterators = fst->lookupRange(keys_int32[start_position - 1],
                                false,
@@ -187,8 +186,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position + 1);
 
   iterators = fst->lookupRange(keys_int32[start_position],
                                true,
@@ -197,16 +196,16 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupInclusiveTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position + 1]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position + 1);
 
   iterators =
       fst->lookupRange(uint32ToString(2), true, uint32ToString(5), false);
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[0]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[1]), 0);
+  ASSERT_EQ(iterators.first.getValue(), 0);
+  ASSERT_EQ(iterators.second.getValue(), 1);
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
@@ -214,6 +213,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
       std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = keys_int32.size() - 10;
   size_t end_position = keys_int32.size() - 1;
+
   auto iterators = fst->lookupRange(keys_int32[start_position - 1],
                                     false,
                                     keys_int32[end_position],
@@ -221,20 +221,20 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position);
 
   iterators = fst->lookupRange(keys_int32[start_position - 1],
                                false,
                                keys_int32[end_position],
                                true);
 
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_FALSE(iterators.second.isValid());
 
   while (iterators.first != iterators.second) {
-    ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
+    ASSERT_EQ(iterators.first.getValue(), start_position);
     ASSERT_TRUE(iterators.first.isValid());
 
     start_position++;
@@ -256,8 +256,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position);
 
   iterators = fst->lookupRange(keys_int32[start_position],
                                true,
@@ -266,8 +266,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position]), 0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position);
+  ASSERT_EQ(iterators.second.getValue(), end_position);
 
   iterators = fst->lookupRange(keys_int32[start_position],
                                false,
@@ -276,9 +276,8 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
 
   ASSERT_TRUE(iterators.first.isValid());
   ASSERT_TRUE(iterators.second.isValid());
-  ASSERT_EQ(iterators.first.getKey().compare(keys_int32[start_position + 1]),
-            0);
-  ASSERT_EQ(iterators.second.getKey().compare(keys_int32[end_position]), 0);
+  ASSERT_EQ(iterators.first.getValue(), start_position + 1);
+  ASSERT_EQ(iterators.second.getValue(), end_position);
 
   iterators =
       fst->lookupRange(uint32ToString(0), false, uint32ToString(2), false);

@@ -215,7 +215,7 @@ bool FST::lookupKey(const std::string &key, uint64_t &value) const {
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
                                     const bool inclusive) const {
   FST::Iter iter(this);
-  // todo do not move iterator, 
+  // todo do not move iterator,
   louds_dense_->moveToKeyGreaterThan(key, inclusive, iter.dense_iter_);
 
   if (!iter.dense_iter_.isValid()) return iter;
@@ -288,16 +288,8 @@ std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key,
   auto begin_iter = moveToKeyGreaterThan(left_key, left_inclusive);
   auto end_iter = moveToKeyGreaterThan(right_key, true);
 
-  if (begin_iter.isValid()) {
-    auto tid = begin_iter.getValue();
-    if ((*keys_)[tid] < left_key) { begin_iter++; }
-    else if ((*keys_)[tid] == left_key) {
-      if (!left_inclusive) { begin_iter++; }
-    }
-  }
-
   // the right key should be inclusive -> move end-iterator to next element if
-  // there is one
+  // there exists one
   if (right_inclusive) {
     if (end_iter.isValid()) {
       // move the iterator only in the case that right_key has been found
