@@ -263,15 +263,14 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
     // if is_at_prefix_key_, pos is at the next valid position in the child node
     pos = node_num * kNodeFanout;
     if (level >= searched_key.length()) {  // if run out of searchKey bytes
-      // CA: todo if run out, then traverse to leftmost key
+      // CA: key too short, -> dense (& sparse) traverse to leftmost key a
       iter.append(getNextPos(pos - 1));
-      if (prefixkey_indicator_bits_->readBit(
-          node_num))  // if the prefix is also a key
-        iter.is_at_prefix_key_ = true;
-      else
-        iter.moveToLeftMostKey();
+      //if (prefixkey_indicator_bits_->readBit(node_num))  // if the prefix is also a key
+      //  iter.is_at_prefix_key_ = true;
+      //else
+      iter.moveToLeftMostKey();
       // valid, search complete, moveLeft complete, moveRight complete
-      iter.setFlags(true, true, true, true);
+      //iter.setFlags(true, true, true, true);
       return;
     }
 
@@ -280,8 +279,7 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
 
     // if no exact match
     if (!label_bitmaps_->readBit(pos)) {
-      // CA: todo need test case to check if this is correct
-      iter++;
+      iter.moveToLeftMostKey(); // search could continue in sparse levels
       return;
     }
 

@@ -275,15 +275,13 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
     position_t node_size = nodeSize(pos);
     // if no exact match
     if (!labels_->search((label_t) searched_key[level], pos, node_size)) {
-      // todo -> do not return false, but just move to the next bigger key?
+      // do not return false, but just move to the next bigger key?
       moveToLeftInNextSubtrie(pos, node_size, searched_key[level], iter);
       return;
     }
-
     iter.append(searched_key[level], pos);
 
-    // if trie branch terminates
-    if (!child_indicator_bits_->readBit(pos)) {
+    if (!child_indicator_bits_->readBit(pos)) { // / trie branch terminates
       iter.rankValuePosition(pos);
       auto found_key = (*keys_)[iter.getValue()];
 
@@ -297,7 +295,6 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
         else
           iter.is_valid_ = true;
       }
-      //iter.rankValuePosition(pos);
       return;
     }
     // move to child
@@ -314,13 +311,13 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
     return;
   }
 
+  // searched key is smaller -> move to leftmost key
   if (searched_key.length() <= level) {
     iter.moveToLeftMostKey();
     return;
   }
 
   iter.is_valid_ = true;
-  return;
 }
 
 uint64_t LoudsSparse::serializedSize() const {
