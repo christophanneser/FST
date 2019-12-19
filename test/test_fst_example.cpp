@@ -11,7 +11,7 @@ namespace surftest {
 class SuRFExampleWords : public ::testing::Test {
  public:
   void SetUp() override {
-    keys.emplace_back(std::string("abca"));
+    keys.emplace_back(std::string("abcaabs"));
     keys.emplace_back(std::string("abcb"));
     keys.emplace_back(std::string("ac"));
     keys.emplace_back(std::string("adef"));
@@ -34,7 +34,15 @@ class SuRFExampleWords : public ::testing::Test {
   std::vector<uint64_t> values_uint64;
 };
 
-TEST_F (SuRFExampleWords, IteratorTest) {
+TEST_F(SuRFExampleWords, GreaterThan) {
+  auto fst = std::make_unique<FST>(keys, values_uint64, kIncludeDense, 100);
+  auto iterator = fst->moveToKeyGreaterThan("ae", true);
+
+  ASSERT_EQ(5, iterator.getValue());
+
+}
+
+TEST_F(SuRFExampleWords, IteratorTest) {
   FST *surf = new FST(keys, values_uint64, kIncludeDense, 100);
   auto iterators = surf->lookupRange("a", true, "b", false);
   uint64_t i(0);
@@ -42,7 +50,8 @@ TEST_F (SuRFExampleWords, IteratorTest) {
     i = iterators.first.getValue();
   while (iterators.first != iterators.second) {
     iterators.first.getValue();
-    std::cout << iterators.first.getKey() << ",\t\t" << iterators.first.getValue() << std::endl;
+    std::cout << iterators.first.getKey() << ",\t\t"
+              << iterators.first.getValue() << std::endl;
     ASSERT_EQ(iterators.first.getValue(), i);
     iterators.first++;
     i++;

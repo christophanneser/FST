@@ -8,7 +8,6 @@
 
 namespace fst::surftest {
 
-static const level_t kSuffixLen = 8;
 static const uint32_t number_keys = 250000;
 static const uint32_t kIntTestSkip = 9;
 
@@ -35,6 +34,15 @@ class SuRFInt32Test : public ::testing::Test {
   }
 
   void TearDown() override {}
+
+  size_t GetFirstKeyAfterLevelChanges(int level,
+                                      size_t offset) {
+    // linear search, could be replaced through binary search
+    char current = keys_int32[offset][level];
+    while (current != keys_int32[offset][level])
+      offset++;
+    return offset;
+  }
 
   std::vector<std::string> keys_int32;
   std::vector<uint64_t> values_uint64;
@@ -116,6 +124,26 @@ TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusive) {
     iter++;
   }
   ASSERT_FALSE(iter.isValid());
+}
+
+// todo new test case to check range lookup for keys that do not have the full length
+TEST_F (SuRFInt32Test, IteratorTestsGreaterThanInclusiveShortKeys) {
+  auto fst =
+      std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
+  size_t start_position = 7234;
+  auto expected_offset = GetFirstKeyAfterLevelChanges(1, start_position);
+  std::string key = keys_int32[expected_offset].substr(0, 1);
+
+  FST::Iter iter = fst->moveToKeyGreaterThan(key, true);
+
+  ASSERT_TRUE(iter.isValid());
+  ASSERT_EQ(expected_offset, iter.getValue());
+
+  iter = fst->moveToKeyGreaterThan(key, false);
+
+  ASSERT_TRUE(iter.isValid());
+  ASSERT_EQ(expected_offset, iter.getValue());
+
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookup) {
