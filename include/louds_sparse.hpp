@@ -332,7 +332,7 @@ uint64_t LoudsSparse::serializedSize() const {
 
 uint64_t LoudsSparse::getMemoryUsage() const {
   return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() +
-      louds_bits_->size() + positions_sparse_.size() * 4);
+      louds_bits_->size() + positions_sparse_.size() * 8);
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {

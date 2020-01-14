@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <stdexcept>
+#include <memory>
 
 #include "bitvector.hpp"
 #include "popcount.h"

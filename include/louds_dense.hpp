@@ -322,7 +322,7 @@ uint64_t LoudsDense::serializedSize() const {
 uint64_t LoudsDense::getMemoryUsage() const {
   return (sizeof(LoudsDense) + label_bitmaps_->size() +
       child_indicator_bitmaps_->size() + prefixkey_indicator_bits_->size()
-      + positions_dense_.size() * 4);
+      + positions_dense_.size() * 8);
 }
 
 position_t LoudsDense::getChildNodeNum(const position_t pos) const {
