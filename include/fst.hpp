@@ -155,10 +155,13 @@ class FST {
   }
 
  private:
-  std::unique_ptr<LoudsDense> louds_dense_;
   std::unique_ptr<LoudsSparse> louds_sparse_;
   std::unique_ptr<FSTBuilder> builder_;
+  std::unique_ptr<LoudsDense> louds_dense_;
+
+  // todo reference to original data instead of keys vector
   const std::vector<std::string> *keys_{};
+
   FST::Iter iter_;
   FST::Iter end_;
 };

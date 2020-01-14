@@ -129,7 +129,7 @@ class LoudsDense {
   // Returns whether key exists in the trie so far
   // out_node_num == 0 means search terminates in louds-dense.
   bool lookupKey(const std::string &key, position_t &out_node_num,
-                 uint64_t &value) const;
+                 uint64_t &offset) const;
 
   // return value indicates potential false positive
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
@@ -222,7 +222,7 @@ LoudsDense::LoudsDense(FSTBuilder *builder,
 }
 
 bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
-                           uint64_t &value) const {
+                           uint64_t &offset) const {
   position_t node_num = 0;
   position_t pos = 0;
   for (level_t level = 0; level < height_; level++) {
@@ -242,10 +242,11 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
       uint64_t value_index = label_bitmaps_->rank(pos) -
           child_indicator_bitmaps_->rank(pos) -
           1;  // + prefix but we do not support this so far
-      value = positions_dense_[value_index];
+      offset = positions_dense_[value_index];
 
-      // check whether the actual key matches
-      return (*keys_)[value] == key;
+      // the following check must be performed by the caller
+      // return (*keys_)[value] == key;
+      return true;
     }
     node_num = getChildNodeNum(pos);
   }

@@ -104,7 +104,7 @@ class LoudsSparse {
   // point query: trie walk starts at node "in_node_num" instead of root
   // in_node_num is provided by louds-dense's lookupKey function
   bool lookupKey(const std::string &key, position_t in_node_num,
-                 uint64_t &value) const;
+                 uint64_t &offset) const;
 
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
                             LoudsSparse::Iter &iter) const;
@@ -239,7 +239,7 @@ LoudsSparse::LoudsSparse(const FSTBuilder *builder,
 
 bool LoudsSparse::lookupKey(const std::string &key,
                             const position_t in_node_num,
-                            uint64_t &value) const {
+                            uint64_t &offset) const {
   position_t node_num = in_node_num;
   position_t pos = getFirstLabelPos(node_num);
   level_t level = 0;
@@ -253,8 +253,10 @@ bool LoudsSparse::lookupKey(const std::string &key,
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-      value = positions_sparse_[value_pos];
-      return (*keys_)[value] == key;
+      offset = positions_sparse_[value_pos];
+      //this check must be performed from the caller
+      // return (*keys_)[value] == key;
+      return true;
     }
 
     // move to child
