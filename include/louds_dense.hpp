@@ -131,6 +131,8 @@ class LoudsDense {
   bool lookupKey(const std::string &key, position_t &out_node_num,
                  uint64_t &offset) const;
 
+  bool lookupNodeNumber(const char* key, uint64_t  key_length, position_t &out_node_num) const;
+
   // return value indicates potential false positive
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
                             LoudsDense::Iter &iter) const;
@@ -254,6 +256,27 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   out_node_num = node_num;
   return true;
 }
+
+bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {
+    position_t node_num = 0;
+    position_t pos = 0;
+    for (level_t level = 0; level < height_; level++) {
+        pos = (node_num * kNodeFanout);
+        if (level >= key_length) {  // if run out of searchKey bytes
+            out_node_num = node_num;
+            return false;
+        }
+        pos += (label_t) key[level];
+
+        assert(label_bitmaps_->readBit(pos)); // assert that key exists
+        assert(child_indicator_bitmaps_->readBit(pos)); // assert branch does not terminate
+
+        node_num = getChildNodeNum(pos);
+    }
+    // search will continue in LoudsSparse
+    out_node_num = node_num;
+    return true;
+};
 
 void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
                                       const bool inclusive,

@@ -113,6 +113,8 @@ class FST {
 
   bool lookupKey(uint64_t key, uint64_t &value) const;
 
+  uint64_t lookupNodeNum(const char* key, uint64_t key_length) const;
+
   // This function searches in a conservative way: if inclusive is true
   // and the stored key prefix matches key, iter stays at this key prefix.
   FST::Iter moveToKeyGreaterThan(const std::string &key, bool inclusive) const;
@@ -214,6 +216,14 @@ bool FST::lookupKey(const std::string &key, uint64_t &value) const {
     return louds_sparse_->lookupKey(key, connect_node_num, value);
   return true;
 }
+
+uint64_t FST::lookupNodeNum(const char* key, uint64_t key_length) const {
+    position_t node_num = 0;
+    if (louds_dense_->lookupNodeNumber(key, key_length, node_num))
+        louds_sparse_->lookupNodeNumber(key, key_length, node_num);
+    return node_num;
+};
+
 
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
                                     const bool inclusive) const {
