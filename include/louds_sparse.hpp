@@ -106,6 +106,9 @@ class LoudsSparse {
   bool lookupKey(const std::string &key, position_t in_node_num,
                  uint64_t &offset) const;
 
+  bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
+                   uint64_t &offset, uint64_t level) const;
+
   void lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const;
 
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
@@ -266,6 +269,33 @@ bool LoudsSparse::lookupKey(const std::string &key,
     pos = getFirstLabelPos(node_num);
   }
   return false;
+}
+
+bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
+                                  uint64_t &offset, uint64_t level) const {
+    position_t node_num = in_node_num;
+    position_t pos = getFirstLabelPos(node_num);
+    for (; level < key_length; level++) {
+        // child_indicator_bits_->prefetch(pos);
+        if (!labels_->search((label_t) key[level],
+                             pos,
+                             nodeSize(pos)))
+            return false;
+
+        // if trie branch terminates
+        if (!child_indicator_bits_->readBit(pos)) {
+            uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
+            offset = positions_sparse_[value_pos];
+            //this check must be performed from the caller
+            // return (*keys_)[value] == key;
+            return true;
+        }
+
+        // move to child
+        node_num = getChildNodeNum(pos);
+        pos = getFirstLabelPos(node_num);
+    }
+    return false;
 }
 
 void LoudsSparse::lookupNodeNumber(const char* key, uint64_t key_length, position_t &node_num) const {

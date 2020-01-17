@@ -131,6 +131,8 @@ class LoudsDense {
   bool lookupKey(const std::string &key, position_t &out_node_num,
                  uint64_t &offset) const;
 
+  bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_number, uint64_t& value) const;
+
   bool lookupNodeNumber(const char* key, uint64_t  key_length, position_t &out_node_num) const;
 
   // return value indicates potential false positive
@@ -257,6 +259,36 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   return true;
 }
 
+bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_num, uint64_t& value) const {
+    position_t pos = 0;
+    for (; level < height_; level++) {
+        pos = (node_num * kNodeFanout);
+        if (level >= key_length) {  // if run out of searchKey bytes
+            return false;
+        }
+        pos += (label_t) key[level];
+
+        if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
+            return false;
+        }
+
+        if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
+            uint64_t value_index = label_bitmaps_->rank(pos) -
+                                   child_indicator_bitmaps_->rank(pos) -
+                                   1;  // + prefix but we do not support this so far
+            value = positions_dense_[value_index];
+
+            // the following check must be performed by the caller
+            // return (*keys_)[value] == key;
+            node_num = 0;
+            return true;
+        }
+        node_num = getChildNodeNum(pos);
+    }
+    // search will continue in LoudsSparse
+    return true;
+}
+
 bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {
     position_t node_num = 0;
     position_t pos = 0;
@@ -277,6 +309,7 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
     out_node_num = node_num;
     return true;
 };
+
 
 void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
                                       const bool inclusive,

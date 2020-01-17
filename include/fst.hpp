@@ -113,6 +113,9 @@ class FST {
 
   bool lookupKey(uint64_t key, uint64_t &value) const;
 
+  // this function is used by hybrid trie to continue a search started in ARTHybrid
+  bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
+
   uint64_t lookupNodeNum(const char* key, uint64_t key_length) const;
 
   // This function searches in a conservative way: if inclusive is true
@@ -161,9 +164,6 @@ class FST {
   std::unique_ptr<FSTBuilder> builder_;
   std::unique_ptr<LoudsDense> louds_dense_;
 
-  // todo reference to original data instead of keys vector
-  const std::vector<std::string> *keys_{};
-
   FST::Iter iter_;
   FST::Iter end_;
 };
@@ -171,7 +171,6 @@ class FST {
 void FST::create(const std::vector<std::string> &keys,
                  const std::vector<uint64_t> &values, const bool include_dense,
                  const uint32_t sparse_dense_ratio) {
-  keys_ = &keys;
   builder_ = std::make_unique<FSTBuilder>(include_dense, sparse_dense_ratio);
   builder_->build(keys, values);
   louds_dense_ = std::make_unique<LoudsDense>(builder_.get(), keys);
@@ -223,6 +222,22 @@ uint64_t FST::lookupNodeNum(const char* key, uint64_t key_length) const {
         louds_sparse_->lookupNodeNumber(key, key_length, node_num);
     return node_num;
 };
+
+bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const{
+    if (level < getSparseStartLevel()) { // start lookup in LoudsDense
+        if (!louds_dense_->lookupKeyAtNode(key, key_length, level, node_number, value)) {
+          return false; // key not immanent in LoudsDense
+        }
+        else if (node_number != 0) {
+            // continue lookup in LoudsSparse at sparse startlevel
+            return louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, getSparseStartLevel());
+        }
+        return true;
+    }
+    // start lookup in LoudsSparse at level and nodenumber
+    return  louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level);
+}
+
 
 
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
@@ -307,9 +322,10 @@ std::pair<FST::Iter, FST::Iter> FST::lookupRange(const std::string &left_key,
     if (end_iter.isValid()) {
       // move the iterator only in the case that right_key has been found
       auto tid = end_iter.getValue();
-      if ((*keys_)[tid] == right_key) {
-        end_iter++;
-      }
+      //todo there is no reference to keys vector anymore
+      //if ((*keys_)[tid] == right_key) {
+      //  end_iter++;
+      //}
     }
   }
 
