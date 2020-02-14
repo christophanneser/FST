@@ -43,6 +43,7 @@ class LoudsDense {
 
     void clear();
 
+
     bool isValid() const { return is_valid_; };
 
     bool isSearchComplete() const { return is_search_complete_; };
@@ -130,6 +131,10 @@ class LoudsDense {
   // out_node_num == 0 means search terminates in louds-dense.
   bool lookupKey(const std::string &key, position_t &out_node_num,
                  uint64_t &offset) const;
+
+  // this function stores the entire node for the given nodeNumber in labels and
+  // values vectors
+  void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
 
   bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_number, uint64_t& value) const;
 
@@ -287,6 +292,28 @@ bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
     }
     // search will continue in LoudsSparse
     return true;
+}
+
+void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
+  position_t pos = (nodeNumber * kNodeFanout);
+  label_bitmaps_->prefetch(pos);
+  child_indicator_bitmaps_->prefetch(pos);
+  for (size_t i = 0; i < 256; i++) {
+      if (label_bitmaps_->readBit(pos + 1)) {
+        labels.push_back(i);
+        if (child_indicator_bitmaps_->readBit(pos + i)) { // label leads to child node
+          // inline information in value that it is a FST node Number
+          values.emplace_back(getChildNodeNum(pos + i) << 2U | 3U);
+        } else {
+          // there is a value, push it back and make it an ART leaf node
+          // + prefix but we do not support this so far
+          uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
+          auto value = positions_dense_[value_index];
+          values.emplace_back((value << 2U) | 1U);
+        }
+      }
+  }
+
 }
 
 bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {

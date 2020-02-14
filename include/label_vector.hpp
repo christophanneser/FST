@@ -144,7 +144,7 @@ bool LabelVector::simdSearch(const label_t target, position_t &pos,
   // CA: todo fix invalid read
   position_t num_labels_searched = 0;
   position_t num_labels_left = search_len;
-  while ((num_labels_left >> 4) > 0) {
+  while ((num_labels_left >> 4) > 0) { // while at least 16 elements remain
     label_t *start_ptr = labels_ + pos + num_labels_searched;
     __m128i cmp =
         _mm_cmpeq_epi8(_mm_set1_epi8(target),

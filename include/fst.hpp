@@ -116,6 +116,8 @@ class FST {
   // this function is used by hybrid trie to continue a search started in ARTHybrid
   bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
 
+  void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values) const;
+
   uint64_t lookupNodeNum(const char* key, uint64_t key_length) const;
 
   // This function searches in a conservative way: if inclusive is true
@@ -223,7 +225,7 @@ uint64_t FST::lookupNodeNum(const char* key, uint64_t key_length) const {
     return node_num;
 };
 
-bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const{
+bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const {
     if (level < getSparseStartLevel()) { // start lookup in LoudsDense
         if (!louds_dense_->lookupKeyAtNode(key, key_length, level, node_number, value)) {
           return false; // key not immanent in LoudsDense
@@ -238,7 +240,15 @@ bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, s
     return  louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level);
 }
 
-
+void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values) const {
+  if (level < getSparseStartLevel()) {
+    // get node from louds_dense_
+    louds_dense_->getNode(node_number, lables, values);
+  } else {
+    // get node from louds_sparse_
+    louds_sparse_->getNode(node_number, lables, values);
+  }
+}
 
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key,
                                     const bool inclusive) const {
