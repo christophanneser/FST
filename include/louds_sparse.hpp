@@ -303,7 +303,7 @@ bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position
 void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
   position_t pos = getFirstLabelPos(nodeNumber);
   size_t size = nodeSize(pos);
-  for (size_t i = pos; i < i + size; i++) {
+  for (size_t i = pos; i < pos + size; i++) {
     labels.emplace_back(labels_->operator[](i));
     if (child_indicator_bits_->readBit(i)) { // there is a child node
       auto childNodeNum = getChildNodeNum(i);
