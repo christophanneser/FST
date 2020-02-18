@@ -46,6 +46,8 @@ class Bitvector {
   position_t distanceToNextSetBit(position_t pos) const;
   position_t distanceToPrevSetBit(position_t pos) const;
 
+  size_t getNumSetBitsInDenseNode(position_t nodeNumber, unsigned &label) const;
+
  private:
   static position_t totalNumBits(
       const std::vector<position_t> &num_bits_per_level, level_t start_level,
@@ -92,6 +94,17 @@ position_t Bitvector::distanceToNextSetBit(const position_t pos) const {
   }
   return distance;
 }
+
+size_t Bitvector::getNumSetBitsInDenseNode(position_t nodeNumber, unsigned &label) const {
+  int setBits = 0;
+  for (auto i = 0; i < 4; i++) {
+    setBits += __builtin_popcountll(bits_[nodeNumber * (kFanout / kWordSize) + i]);
+    if (bits_[nodeNumber * (kFanout / kWordSize) + i] > 0) {
+     label = __builtin_clz(bits_[nodeNumber * (kFanout / kWordSize) + i] > 0) + kWordSize * i;
+    }
+  }
+  return setBits;
+};
 
 position_t Bitvector::distanceToPrevSetBit(const position_t pos) const {
   assert(pos <= num_bits_);

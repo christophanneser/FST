@@ -132,6 +132,10 @@ class LoudsDense {
   bool lookupKey(const std::string &key, position_t &out_node_num,
                  uint64_t &offset) const;
 
+
+  // this function checks if the FST node has only one branch
+  bool nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const;
+
   // this function stores the entire node for the given nodeNumber in labels and
   // values vectors
   void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
@@ -294,6 +298,21 @@ bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
     return true;
 }
 
+bool LoudsDense::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const {
+  unsigned label = 0;
+  assert(label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) > 0);
+  if (label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) == 1)  {
+    position_t pos = (nodeNumber * kNodeFanout) + label;
+    if (!child_indicator_bitmaps_->readBit(pos)) {
+      return true;
+    }
+    prefixLabels.emplace_back(label);
+    nodeNumber = getChildNodeNum(pos);
+    return false;
+  }
+  return true;
+}
+
 void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
   position_t pos = (nodeNumber * kNodeFanout);
   label_bitmaps_->prefetch(pos);
@@ -319,7 +338,7 @@ void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::
 bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {
     position_t node_num = 0;
     position_t pos = 0;
-    for (level_t level = 0; level < height_; level++) {
+    for (level_t level = 0; level < height_ && level < key_length; level++) {
         pos = (node_num * kNodeFanout);
         if (level >= key_length) {  // if run out of searchKey bytes
             out_node_num = node_num;

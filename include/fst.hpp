@@ -116,7 +116,7 @@ class FST {
   // this function is used by hybrid trie to continue a search started in ARTHybrid
   bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
 
-  void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values) const;
+  void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values, std::vector<uint8_t> &prefix) const;
 
   uint64_t lookupNodeNum(const char* key, uint64_t key_length) const;
 
@@ -240,12 +240,20 @@ bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, s
     return  louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level);
 }
 
-void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values) const {
+void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values, std::vector<uint8_t> &prefixLabels) const {
   // todo later: detect common prefix on path -> if there is only one label, go further down
+  while ( level < getSparseStartLevel() && !louds_dense_->nodeHasMultipleBranchesOrTerminates(node_number, level,prefixLabels)) {
+    level++;
+  }
   if (level < getSparseStartLevel()) {
     // get node from louds_dense_
     louds_dense_->getNode(node_number, lables, values);
   } else {
+    while (!louds_sparse_->nodeHasMultipleBranchesOrTerminates(node_number,
+                                                               level,
+                                                               prefixLabels)) {
+     level++;
+    }
     // get node from louds_sparse_
     louds_sparse_->getNode(node_number, lables, values);
   }

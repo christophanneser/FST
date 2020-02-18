@@ -109,6 +109,8 @@ class LoudsSparse {
   bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
                    uint64_t &offset, uint64_t level) const;
 
+  bool nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const;
+
   void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
 
   void lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const;
@@ -309,11 +311,25 @@ void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std:
       auto childNodeNum = getChildNodeNum(i);
       values.emplace_back(childNodeNum << 2U | 3U);
     } else { // leads to a value
-      uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
+      uint64_t value_pos = i - child_indicator_bits_->rank(i);
       auto offset = positions_sparse_[value_pos];
       values.emplace_back(offset << 2U | 1U);
     }
   }
+}
+
+bool LoudsSparse::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const {
+  position_t pos = getFirstLabelPos(nodeNumber);
+  size_t size = nodeSize(pos);
+  if (size == 1) {
+    if (!child_indicator_bits_->readBit(pos)) {
+      return true;
+    }
+    prefixLabels.emplace_back(labels_->operator[](pos));
+    nodeNumber = getChildNodeNum(pos);
+    return false;
+  }
+  return true;
 }
 
 void LoudsSparse::lookupNodeNumber(const char* key, uint64_t key_length, position_t &node_num) const {
