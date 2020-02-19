@@ -318,7 +318,7 @@ void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::
   label_bitmaps_->prefetch(pos);
   child_indicator_bitmaps_->prefetch(pos);
   for (size_t i = 0; i < 256; i++) {
-      if (label_bitmaps_->readBit(pos + 1)) {
+      if (label_bitmaps_->readBit(pos + i)) {
         labels.push_back(i);
         if (child_indicator_bitmaps_->readBit(pos + i)) { // label leads to child node
           // inline information in value that it is a FST node Number
@@ -326,7 +326,7 @@ void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::
         } else {
           // there is a value, push it back and make it an ART leaf node
           // + prefix but we do not support this so far
-          uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
+          uint64_t value_index = label_bitmaps_->rank(pos + i) - child_indicator_bitmaps_->rank(pos + i) - 1;
           auto value = positions_dense_[value_index];
           values.emplace_back((value << 2U) | 1U);
         }

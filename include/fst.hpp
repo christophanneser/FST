@@ -243,7 +243,7 @@ bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, s
 
 void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values, std::vector<uint8_t> &prefixLabels) const {
   // todo later: detect common prefix on path -> if there is only one label, go further down
-  while ( level < getSparseStartLevel() && !louds_dense_->nodeHasMultipleBranchesOrTerminates(node_number, level,prefixLabels)) {
+  while (level < getSparseStartLevel() && !louds_dense_->nodeHasMultipleBranchesOrTerminates(node_number, level,prefixLabels)) {
     level++;
   }
   if (level < getSparseStartLevel()) {
