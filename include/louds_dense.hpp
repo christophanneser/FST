@@ -338,7 +338,9 @@ void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::
 bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {
     position_t node_num = 0;
     position_t pos = 0;
-    for (level_t level = 0; level < height_ && level < key_length; level++) {
+    level_t level = 0;
+    // todo check when to return true but set node_num to 0 -> finished in dense already
+    for (; level < height_ && level < key_length; level++) {
         pos = (node_num * kNodeFanout);
         if (level >= key_length) {  // if run out of searchKey bytes
             out_node_num = node_num;
@@ -351,6 +353,7 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
 
         node_num = getChildNodeNum(pos);
     }
+
     // search will continue in LoudsSparse
     out_node_num = node_num;
     return true;

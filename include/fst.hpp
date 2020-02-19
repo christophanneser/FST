@@ -221,6 +221,7 @@ bool FST::lookupKey(const std::string &key, uint64_t &value) const {
 uint64_t FST::lookupNodeNum(const char* key, uint64_t key_length) const {
     position_t node_num = 0;
     if (louds_dense_->lookupNodeNumber(key, key_length, node_num))
+      if (key_length >= louds_sparse_->getStartLevel())
         louds_sparse_->lookupNodeNumber(key, key_length, node_num);
     return node_num;
 };
