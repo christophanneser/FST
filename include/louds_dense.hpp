@@ -298,19 +298,23 @@ bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
     return true;
 }
 
+/// Returns true if one or two of the following conditions evaluate to true:
+/// 1. Node has at least two labels
+/// 2. If has one label that leads not to a child node
 bool LoudsDense::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const {
   unsigned label = 0;
   assert(label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) > 0);
-  if (label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) == 1)  {
+  if (label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) == 1) {
+    // node has only one label
     position_t pos = (nodeNumber * kNodeFanout) + label;
-    if (!child_indicator_bitmaps_->readBit(pos)) {
+    if (!child_indicator_bitmaps_->readBit(pos)) // branch terminates
       return true;
-    }
     prefixLabels.emplace_back(label);
     nodeNumber = getChildNodeNum(pos);
     return false;
+  } else { // there are at least two labels in the node
+    return true;
   }
-  return true;
 }
 
 void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
@@ -324,8 +328,7 @@ void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::
           // inline information in value that it is a FST node Number
           values.emplace_back(getChildNodeNum(pos + i) << 2U | 3U);
         } else {
-          // there is a value, push it back and make it an ART leaf node
-          // + prefix but we do not support this so far
+          // there is a value, push it back and create an ART leaf node
           uint64_t value_index = label_bitmaps_->rank(pos + i) - child_indicator_bitmaps_->rank(pos + i) - 1;
           auto value = positions_dense_[value_index];
           values.emplace_back((value << 2U) | 1U);
