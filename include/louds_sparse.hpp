@@ -275,7 +275,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
   return false;
 }
 
-bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
+inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
                                   uint64_t &offset, uint64_t level) const {
     position_t node_num = in_node_num;
     position_t pos = getFirstLabelPos(node_num);

@@ -268,7 +268,7 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   return true;
 }
 
-bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_num, uint64_t& value) const {
+inline bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_num, uint64_t& value) const {
     position_t pos = 0;
     for (; level < height_; level++) {
         pos = (node_num * kNodeFanout);

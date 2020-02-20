@@ -114,7 +114,7 @@ class FST {
   bool lookupKey(uint64_t key, uint64_t &value) const;
 
   // this function is used by hybrid trie to continue a search started in ARTHybrid
-  bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
+  inline bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
 
   void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values, std::vector<uint8_t> &prefix) const;
 
@@ -226,7 +226,7 @@ uint64_t FST::lookupNodeNum(const char* key, uint64_t key_length) const {
     return node_num;
 };
 
-bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const {
+inline bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const {
     if (level < getSparseStartLevel()) { // start lookup in LoudsDense
         if (!louds_dense_->lookupKeyAtNode(key, key_length, level, node_number, value)) {
           return false; // key not immanent in LoudsDense
