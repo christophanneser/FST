@@ -116,6 +116,11 @@ class FST {
   // this function is used by hybrid trie to continue a search started in ARTHybrid
   inline bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t node_number, uint64_t& value) const;
 
+  // this function is used by hybrid trie to execute one lookup step in AMAC setting
+  // returns true if next nodenumber is found or lookup finished
+  // returns false if this key does not exist
+  inline bool amacLookup(const char keyByte, level_t level, size_t &node_number) const;
+
   void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values, std::vector<uint8_t> &prefix) const;
 
   uint64_t lookupNodeNum(const char* key, uint64_t key_length) const;
@@ -239,6 +244,16 @@ inline bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
     }
     // start lookup in LoudsSparse at level and nodenumber
     return  louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level);
+}
+
+// store result in node_number when it gets found
+inline bool FST::amacLookup(const char keyByte, level_t level, size_t &node_number) const {
+  if (level < getSparseStartLevel()) { // lookup in LoudsDense
+    return louds_dense_->findNextNodeOrValue(keyByte, node_number);
+
+  } else { // lookup in LoudsSparse
+    return louds_sparse_->findNextNodeOrValue(keyByte, node_number);
+  }
 }
 
 /// For the given node_number, this function returns the first node that is a

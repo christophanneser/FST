@@ -109,6 +109,8 @@ class LoudsSparse {
   bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
                    uint64_t &offset, uint64_t level) const;
 
+  bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
+
   bool nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const;
 
   void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
@@ -300,6 +302,30 @@ inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, p
         pos = getFirstLabelPos(node_num);
     }
     return false;
+}
+
+// returns true if next node or value is found, false if keyByte is not immanent
+// 1. next nodenumber has been found, return true
+//  - in this case, return next nodenumber and set last to bits to 01
+// 2. result has been found, return true
+//  - in this case, return result and set the last to bits to 11
+// 3. keyByte does not exist in given node
+//  - return false
+bool LoudsSparse::findNextNodeOrValue(const char keyByte, size_t &node_num) const {
+  position_t pos = getFirstLabelPos(node_num);
+
+  if (!labels_->search((label_t) keyByte, pos, nodeSize(pos))) {
+    return false; // key does not exist
+  }
+  // find next node or value
+  if (!child_indicator_bits_->readBit(pos)) { // branch terminates
+    uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
+    uint64_t offset = positions_sparse_[value_pos];
+    node_num = (offset << 2u) | 1u;
+  } else { // branch continues
+    node_num = (getChildNodeNum(pos) << 2u) | 3u;
+  }
+  return true;
 }
 
 void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {

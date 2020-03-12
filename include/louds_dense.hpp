@@ -144,6 +144,8 @@ class LoudsDense {
 
   bool lookupNodeNumber(const char* key, uint64_t  key_length, position_t &out_node_num) const;
 
+  bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
+
   // return value indicates potential false positive
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
                             LoudsDense::Iter &iter) const;
@@ -362,6 +364,29 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
     return true;
 };
 
+// returns true if next node or value is found, false if keyByte is not immanent
+// 1. next nodenumber has been found, return true
+//  - in this case, return next nodenumber and set last to bits to 01
+// 2. result has been found, return true
+//  - in this case, return result and set the last to bits to 11
+// 3. keyByte does not exist in given node
+//  - return false
+bool LoudsDense::findNextNodeOrValue(const char keyByte, size_t &node_number) const{
+  position_t pos = (node_number * kNodeFanout) + keyByte;
+  if (!label_bitmaps_->readBit(pos)) { // key not immanent
+    return false;
+  }
+  // key exists
+  if (!child_indicator_bitmaps_->readBit(pos)) { // branch terminates
+    uint64_t value_index =
+        label_bitmaps_->rank(pos) -
+        child_indicator_bitmaps_->rank(pos) - 1;
+        node_number = (positions_dense_[value_index] << 2u) | 1u ;
+  } else { // branch continues
+   node_number = (getChildNodeNum(pos) << 2u) | 3u;
+  }
+  return true;
+}
 
 void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
                                       const bool inclusive,
