@@ -372,6 +372,7 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
 // 3. keyByte does not exist in given node
 //  - return false
 bool LoudsDense::findNextNodeOrValue(const char keyByte, size_t &node_number) const{
+  // todo careful, node_number has uses only 62 bits
   position_t pos = (node_number * kNodeFanout) + keyByte;
   if (!label_bitmaps_->readBit(pos)) { // key not immanent
     return false;

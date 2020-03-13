@@ -248,6 +248,7 @@ inline bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
 
 // store result in node_number when it gets found
 inline bool FST::amacLookup(const char keyByte, level_t level, size_t &node_number) const {
+  // todo node_number uses only 62 bits
   if (level < getSparseStartLevel()) { // lookup in LoudsDense
     return louds_dense_->findNextNodeOrValue(keyByte, node_number);
 
