@@ -240,7 +240,9 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
                            uint64_t &offset) const {
   position_t node_num = 0;
   position_t pos = 0;
+  //std::cout << "node numbers in fst: ";
   for (level_t level = 0; level < height_; level++) {
+    //std::cout << node_num << ", ";
     pos = (node_num * kNodeFanout);
     if (level >= key.length()) {  // if run out of searchKey bytes
       return false;
@@ -275,11 +277,13 @@ inline bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, le
     for (; level < height_; level++) {
         pos = (node_num * kNodeFanout);
         if (level >= key_length) {  // if run out of searchKey bytes
+            //std::cout << "[dense] run out of search bytes!" << std::endl;
             return false;
         }
         pos += (label_t) key[level];
 
         if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
+            //std::cout << "[dense] key byte does not exists!" << std::endl;
             return false;
         }
 
@@ -373,18 +377,23 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
 //  - return false
 bool LoudsDense::findNextNodeOrValue(const char keyByte, size_t &node_number) const{
   // todo careful, node_number has uses only 62 bits
-  position_t pos = (node_number * kNodeFanout) + keyByte;
+  //std::cout << "in [dense] lookup" << std::endl;
+  position_t pos = (node_number * kNodeFanout) + ((label_t) keyByte);
   if (!label_bitmaps_->readBit(pos)) { // key not immanent
+    //std::cout << "key not immanent in dense!" << std::endl;
     return false;
   }
+
   // key exists
   if (!child_indicator_bitmaps_->readBit(pos)) { // branch terminates
-    uint64_t value_index =
+      //std::cout << "dense value found" << std::endl;
+      uint64_t value_index =
         label_bitmaps_->rank(pos) -
         child_indicator_bitmaps_->rank(pos) - 1;
         node_number = (positions_dense_[value_index] << 2u) | 1u ;
   } else { // branch continues
-   node_number = (getChildNodeNum(pos) << 2u) | 3u;
+      //std::cout << "dense branch continues" << std::endl;
+      node_number = (getChildNodeNum(pos) << 2u) | 3u;
   }
   return true;
 }

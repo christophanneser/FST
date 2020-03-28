@@ -250,10 +250,13 @@ inline bool FST::lookupKeyAtNode(const char* key, uint64_t key_length, level_t l
 inline bool FST::amacLookup(const char keyByte, level_t level, size_t &node_number) const {
   // todo node_number uses only 62 bits
   if (level < getSparseStartLevel()) { // lookup in LoudsDense
-    return louds_dense_->findNextNodeOrValue(keyByte, node_number);
-
+    bool keyExistentSoFar = louds_dense_->findNextNodeOrValue(keyByte, node_number);
+    //if (!keyExistentSoFar) { std::cout << "key does not exist in dense levels" << std::endl; }
+    return keyExistentSoFar;
   } else { // lookup in LoudsSparse
-    return louds_sparse_->findNextNodeOrValue(keyByte, node_number);
+    bool keyExistentSoFar = louds_sparse_->findNextNodeOrValue(keyByte, node_number);
+    //if (!keyExistentSoFar) { std::cout << "key does not exist in sparse levels" << std::endl; }
+    return keyExistentSoFar;
   }
 }
 

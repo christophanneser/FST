@@ -256,9 +256,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
   level_t level = 0;
   for (level = start_level_; level < key.length(); level++) {
     // child_indicator_bits_->prefetch(pos);
-    if (!labels_->search((label_t) key[level],
-                         pos,
-                         nodeSize(pos)))
+    if (!labels_->search((label_t) key[level], pos, nodeSize(pos)))
       return false;
 
     // if trie branch terminates
