@@ -13,15 +13,13 @@ class Bitvector {
   Bitvector() : num_bits_(0), bits_(nullptr){};
 
   Bitvector(const std::vector<std::vector<word_t> > &bitvector_per_level,
-            const std::vector<position_t> &num_bits_per_level,
-            const level_t start_level = 0,
+            const std::vector<position_t> &num_bits_per_level, const level_t start_level = 0,
             level_t end_level = 0 /* non-inclusive */) {
     if (end_level == 0) end_level = bitvector_per_level.size();
     num_bits_ = totalNumBits(num_bits_per_level, start_level, end_level);
     bits_ = new word_t[numWords()];
     memset(bits_, 0, bitsSize());
-    concatenateBitvectors(bitvector_per_level, num_bits_per_level, start_level,
-                          end_level);
+    concatenateBitvectors(bitvector_per_level, num_bits_per_level, start_level, end_level);
   }
 
   ~Bitvector() = default;
@@ -49,14 +47,12 @@ class Bitvector {
   size_t getNumSetBitsInDenseNode(position_t nodeNumber, unsigned &label) const;
 
  private:
-  static position_t totalNumBits(
-      const std::vector<position_t> &num_bits_per_level, level_t start_level,
-      level_t end_level /* non-inclusive */);
+  static position_t totalNumBits(const std::vector<position_t> &num_bits_per_level, level_t start_level,
+                                 level_t end_level /* non-inclusive */);
 
-  void concatenateBitvectors(
-      const std::vector<std::vector<word_t> > &bitvector_per_level,
-      const std::vector<position_t> &num_bits_per_level, level_t start_level,
-      level_t end_level /* non-inclusive */);
+  void concatenateBitvectors(const std::vector<std::vector<word_t> > &bitvector_per_level,
+                             const std::vector<position_t> &num_bits_per_level, level_t start_level,
+                             level_t end_level /* non-inclusive */);
 
  protected:
   position_t num_bits_;
@@ -100,7 +96,7 @@ size_t Bitvector::getNumSetBitsInDenseNode(position_t nodeNumber, unsigned &labe
   for (auto i = 0; i < 4; i++) {
     setBits += __builtin_popcountll(bits_[nodeNumber * (kFanout / kWordSize) + i]);
     if (bits_[nodeNumber * (kFanout / kWordSize) + i] > 0) {
-     label = __builtin_clz(bits_[nodeNumber * (kFanout / kWordSize) + i] > 0) + kWordSize * i;
+      label = __builtin_clz(bits_[nodeNumber * (kFanout / kWordSize) + i] > 0) + kWordSize * i;
     }
   }
   return setBits;
@@ -133,19 +129,16 @@ position_t Bitvector::distanceToPrevSetBit(const position_t pos) const {
   return distance;
 }
 
-position_t Bitvector::totalNumBits(
-    const std::vector<position_t> &num_bits_per_level,
-    const level_t start_level, const level_t end_level /* non-inclusive */) {
+position_t Bitvector::totalNumBits(const std::vector<position_t> &num_bits_per_level, const level_t start_level,
+                                   const level_t end_level /* non-inclusive */) {
   position_t num_bits = 0;
-  for (level_t level = start_level; level < end_level; level++)
-    num_bits += num_bits_per_level[level];
+  for (level_t level = start_level; level < end_level; level++) num_bits += num_bits_per_level[level];
   return num_bits;
 }
 
-void Bitvector::concatenateBitvectors(
-    const std::vector<std::vector<word_t> > &bitvector_per_level,
-    const std::vector<position_t> &num_bits_per_level,
-    const level_t start_level, const level_t end_level /* non-inclusive */) {
+void Bitvector::concatenateBitvectors(const std::vector<std::vector<word_t> > &bitvector_per_level,
+                                      const std::vector<position_t> &num_bits_per_level, const level_t start_level,
+                                      const level_t end_level /* non-inclusive */) {
   position_t bit_shift = 0;
   position_t word_id = 0;
   for (level_t level = start_level; level < end_level; level++) {
@@ -154,13 +147,10 @@ void Bitvector::concatenateBitvectors(
     for (position_t word = 0; word < num_complete_words; word++) {
       bits_[word_id] |= (bitvector_per_level[level][word] >> bit_shift);
       word_id++;
-      if (bit_shift > 0)
-        bits_[word_id] |=
-            (bitvector_per_level[level][word] << (kWordSize - bit_shift));
+      if (bit_shift > 0) bits_[word_id] |= (bitvector_per_level[level][word] << (kWordSize - bit_shift));
     }
 
-    word_t bits_remain =
-        num_bits_per_level[level] - num_complete_words * kWordSize;
+    word_t bits_remain = num_bits_per_level[level] - num_complete_words * kWordSize;
     if (bits_remain > 0) {
       word_t last_word = bitvector_per_level[level][num_complete_words];
       bits_[word_id] |= (last_word >> bit_shift);

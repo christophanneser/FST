@@ -14,13 +14,10 @@ class BitvectorSelect : public Bitvector {
  public:
   BitvectorSelect() : sample_interval_(0), num_ones_(0), select_lut_(nullptr){};
 
-  BitvectorSelect(const position_t sample_interval,
-                  const std::vector<std::vector<word_t> > &bitvector_per_level,
-                  const std::vector<position_t> &num_bits_per_level,
-                  const level_t start_level = 0,
+  BitvectorSelect(const position_t sample_interval, const std::vector<std::vector<word_t> > &bitvector_per_level,
+                  const std::vector<position_t> &num_bits_per_level, const level_t start_level = 0,
                   const level_t end_level = 0 /* non-inclusive */)
-      : Bitvector(bitvector_per_level, num_bits_per_level, start_level,
-                  end_level) {
+      : Bitvector(bitvector_per_level, num_bits_per_level, start_level, end_level) {
     sample_interval_ = sample_interval;
     initSelectLut();
   }
@@ -54,8 +51,7 @@ class BitvectorSelect : public Bitvector {
     } else {
       offset++;
     }
-    word_t word =
-        bits_[word_id] << offset >> offset;  // zero-out most significant bits
+    word_t word = bits_[word_id] << offset >> offset;  // zero-out most significant bits
     position_t ones_count_in_word = popcount(word);
     while (ones_count_in_word < rank_left) {
       word_id++;
@@ -66,20 +62,15 @@ class BitvectorSelect : public Bitvector {
     return (word_id * kWordSize + select64_popcount_search(word, rank_left));
   }
 
-  position_t selectLutSize() const {
-    return ((num_ones_ / sample_interval_ + 1) * sizeof(position_t));
-  }
+  position_t selectLutSize() const { return ((num_ones_ / sample_interval_ + 1) * sizeof(position_t)); }
 
   position_t serializedSize() const {
-    position_t size = sizeof(num_bits_) + sizeof(sample_interval_) +
-                      sizeof(num_ones_) + bitsSize() + selectLutSize();
+    position_t size = sizeof(num_bits_) + sizeof(sample_interval_) + sizeof(num_ones_) + bitsSize() + selectLutSize();
     sizeAlign(size);
     return size;
   }
 
-  position_t size() const override {
-    return (sizeof(BitvectorSelect) + bitsSize() + selectLutSize());
-  }
+  position_t size() const override { return (sizeof(BitvectorSelect) + bitsSize() + selectLutSize()); }
 
   position_t numOnes() const { return num_ones_; }
 
@@ -101,16 +92,13 @@ class BitvectorSelect : public Bitvector {
     auto bv_select = std::make_unique<BitvectorSelect>();
     memcpy(&(bv_select->num_bits_), src, sizeof(bv_select->num_bits_));
     src += sizeof(bv_select->num_bits_);
-    memcpy(&(bv_select->sample_interval_), src,
-           sizeof(bv_select->sample_interval_));
+    memcpy(&(bv_select->sample_interval_), src, sizeof(bv_select->sample_interval_));
     src += sizeof(bv_select->sample_interval_);
     memcpy(&(bv_select->num_ones_), src, sizeof(bv_select->num_ones_));
     src += sizeof(bv_select->num_ones_);
-    bv_select->bits_ =
-        const_cast<word_t *>(reinterpret_cast<const word_t *>(src));
+    bv_select->bits_ = const_cast<word_t *>(reinterpret_cast<const word_t *>(src));
     src += bv_select->bitsSize();
-    bv_select->select_lut_ =
-        const_cast<position_t *>(reinterpret_cast<const position_t *>(src));
+    bv_select->select_lut_ = const_cast<position_t *>(reinterpret_cast<const position_t *>(src));
     src += bv_select->selectLutSize();
     align(src);
     return bv_select;
@@ -131,8 +119,7 @@ class BitvectorSelect : public Bitvector {
       position_t num_ones_in_word = popcount(bits_[i]);
       while (sampling_ones <= (cumu_ones_upto_word + num_ones_in_word)) {
         int diff = sampling_ones - cumu_ones_upto_word;
-        position_t result_pos =
-            i * kWordSize + select64_popcount_search(bits_[i], diff);
+        position_t result_pos = i * kWordSize + select64_popcount_search(bits_[i], diff);
         select_lut_vector.push_back(result_pos);
         sampling_ones += sample_interval_;
       }
@@ -142,8 +129,7 @@ class BitvectorSelect : public Bitvector {
     num_ones_ = cumu_ones_upto_word;
     position_t num_samples = select_lut_vector.size();
     select_lut_ = new position_t[num_samples];
-    for (position_t i = 0; i < num_samples; i++)
-      select_lut_[i] = select_lut_vector[i];
+    for (position_t i = 0; i < num_samples; i++) select_lut_[i] = select_lut_vector[i];
   }
 
  private:

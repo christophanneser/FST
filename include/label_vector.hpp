@@ -12,14 +12,12 @@ class LabelVector {
  public:
   LabelVector() : num_bytes_(0), labels_(nullptr){};
 
-  explicit LabelVector(const std::vector<std::vector<label_t> > &labels_per_level,
-              const level_t start_level = 0,
-              level_t end_level = 0 /* non-inclusive */) {
+  explicit LabelVector(const std::vector<std::vector<label_t> > &labels_per_level, const level_t start_level = 0,
+                       level_t end_level = 0 /* non-inclusive */) {
     if (end_level == 0) end_level = labels_per_level.size();
 
     num_bytes_ = 1;
-    for (level_t level = start_level; level < end_level; level++)
-      num_bytes_ += labels_per_level[level].size();
+    for (level_t level = start_level; level < end_level; level++) num_bytes_ += labels_per_level[level].size();
 
     labels_ = new label_t[num_bytes_];
 
@@ -32,9 +30,7 @@ class LabelVector {
     }
   }
 
-  ~LabelVector() {
-    delete[] labels_;
-  }
+  ~LabelVector() { delete[] labels_; }
 
   position_t getNumBytes() const { return num_bytes_; }
 
@@ -51,19 +47,14 @@ class LabelVector {
   label_t operator[](const position_t pos) const { return labels_[pos]; }
 
   bool search(label_t target, position_t &pos, position_t search_len) const;
-  bool searchGreaterThan(label_t target, position_t &pos,
-                         position_t search_len) const;
+  bool searchGreaterThan(label_t target, position_t &pos, position_t search_len) const;
 
-  bool binarySearch(label_t target, position_t &pos,
-                    position_t search_len) const;
+  bool binarySearch(label_t target, position_t &pos, position_t search_len) const;
   bool simdSearch(label_t target, position_t &pos, position_t search_len) const;
-  bool linearSearch(label_t target, position_t &pos,
-                    position_t search_len) const;
+  bool linearSearch(label_t target, position_t &pos, position_t search_len) const;
 
-  bool binarySearchGreaterThan(label_t target, position_t &pos,
-                               position_t search_len) const;
-  bool linearSearchGreaterThan(label_t target, position_t &pos,
-                               position_t search_len) const;
+  bool binarySearchGreaterThan(label_t target, position_t &pos, position_t search_len) const;
+  bool linearSearchGreaterThan(label_t target, position_t &pos, position_t search_len) const;
 
   void serialize(char *&dst) const {
     memcpy(dst, &num_bytes_, sizeof(num_bytes_));
@@ -83,17 +74,14 @@ class LabelVector {
     return lv;
   }
 
-  void destroy() {
-
-  }
+  void destroy() {}
 
  private:
   position_t num_bytes_;
   label_t *labels_;
 };
 
-bool LabelVector::search(const label_t target, position_t &pos,
-                         position_t search_len) const {
+bool LabelVector::search(const label_t target, position_t &pos, position_t search_len) const {
   // skip terminator label
   if ((search_len > 1) && (labels_[pos] == kTerminator)) {
     pos++;
@@ -107,8 +95,7 @@ bool LabelVector::search(const label_t target, position_t &pos,
     return simdSearch(target, pos, search_len);
 }
 
-bool LabelVector::searchGreaterThan(const label_t target, position_t &pos,
-                                    position_t search_len) const {
+bool LabelVector::searchGreaterThan(const label_t target, position_t &pos, position_t search_len) const {
   // skip terminator label
   if ((search_len > 1) && (labels_[pos] == kTerminator)) {
     pos++;
@@ -121,8 +108,7 @@ bool LabelVector::searchGreaterThan(const label_t target, position_t &pos,
     return binarySearchGreaterThan(target, pos, search_len);
 }
 
-bool LabelVector::binarySearch(const label_t target, position_t &pos,
-                               const position_t search_len) const {
+bool LabelVector::binarySearch(const label_t target, position_t &pos, const position_t search_len) const {
   position_t l = pos;
   position_t r = pos + search_len;
   while (l < r) {
@@ -139,16 +125,13 @@ bool LabelVector::binarySearch(const label_t target, position_t &pos,
   return false;
 }
 
-bool LabelVector::simdSearch(const label_t target, position_t &pos,
-                             const position_t search_len) const {
+bool LabelVector::simdSearch(const label_t target, position_t &pos, const position_t search_len) const {
   // CA: todo fix invalid read
   position_t num_labels_searched = 0;
   position_t num_labels_left = search_len;
-  while ((num_labels_left >> 4) > 0) { // while at least 16 elements remain
+  while ((num_labels_left >> 4) > 0) {  // while at least 16 elements remain
     label_t *start_ptr = labels_ + pos + num_labels_searched;
-    __m128i cmp =
-        _mm_cmpeq_epi8(_mm_set1_epi8(target),
-                       _mm_loadu_si128(reinterpret_cast<__m128i *>(start_ptr)));
+    __m128i cmp = _mm_cmpeq_epi8(_mm_set1_epi8(target), _mm_loadu_si128(reinterpret_cast<__m128i *>(start_ptr)));
     unsigned check_bits = _mm_movemask_epi8(cmp);
     if (check_bits) {
       pos += (num_labels_searched + __builtin_ctz(check_bits));
@@ -160,9 +143,7 @@ bool LabelVector::simdSearch(const label_t target, position_t &pos,
 
   if (num_labels_left > 0) {
     label_t *start_ptr = labels_ + pos + num_labels_searched;
-    __m128i cmp =
-        _mm_cmpeq_epi8(_mm_set1_epi8(target),
-                       _mm_loadu_si128(reinterpret_cast<__m128i *>(start_ptr)));
+    __m128i cmp = _mm_cmpeq_epi8(_mm_set1_epi8(target), _mm_loadu_si128(reinterpret_cast<__m128i *>(start_ptr)));
     unsigned leftover_bits_mask = (1 << num_labels_left) - 1;
     unsigned check_bits = _mm_movemask_epi8(cmp) & leftover_bits_mask;
     if (check_bits) {
@@ -174,8 +155,7 @@ bool LabelVector::simdSearch(const label_t target, position_t &pos,
   return false;
 }
 
-bool LabelVector::linearSearch(const label_t target, position_t &pos,
-                               const position_t search_len) const {
+bool LabelVector::linearSearch(const label_t target, position_t &pos, const position_t search_len) const {
   for (position_t i = 0; i < search_len; i++) {
     if (target == labels_[pos + i]) {
       pos += i;
@@ -185,8 +165,7 @@ bool LabelVector::linearSearch(const label_t target, position_t &pos,
   return false;
 }
 
-bool LabelVector::binarySearchGreaterThan(const label_t target, position_t &pos,
-                                          const position_t search_len) const {
+bool LabelVector::binarySearchGreaterThan(const label_t target, position_t &pos, const position_t search_len) const {
   position_t l = pos;
   position_t r = pos + search_len;
   while (l < r) {
@@ -211,8 +190,7 @@ bool LabelVector::binarySearchGreaterThan(const label_t target, position_t &pos,
   return false;
 }
 
-bool LabelVector::linearSearchGreaterThan(const label_t target, position_t &pos,
-                                          const position_t search_len) const {
+bool LabelVector::linearSearchGreaterThan(const label_t target, position_t &pos, const position_t search_len) const {
   for (position_t i = 0; i < search_len; i++) {
     if (labels_[pos + i] > target) {
       pos += i;

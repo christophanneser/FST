@@ -43,7 +43,6 @@ class LoudsDense {
 
     void clear();
 
-
     bool isValid() const { return is_valid_; };
 
     bool isSearchComplete() const { return is_search_complete_; };
@@ -52,10 +51,7 @@ class LoudsDense {
 
     bool isMoveRightComplete() const { return is_move_right_complete_; };
 
-    bool isComplete() const {
-      return (is_search_complete_ &&
-          (is_move_left_complete_ && is_move_right_complete_));
-    }
+    bool isComplete() const { return (is_search_complete_ && (is_move_left_complete_ && is_move_right_complete_)); }
 
     int compare(const std::string &key) const;
 
@@ -86,12 +82,9 @@ class LoudsDense {
 
     inline void set(level_t level, position_t pos);
 
-    inline void setSendOutNodeNum(position_t node_num) {
-      send_out_node_num_ = node_num;
-    };
+    inline void setSendOutNodeNum(position_t node_num) { send_out_node_num_ = node_num; };
 
-    inline void setFlags(bool is_valid, bool is_search_complete,
-                         bool is_move_left_complete,
+    inline void setFlags(bool is_valid, bool is_search_complete, bool is_move_left_complete,
                          bool is_move_right_complete);
 
    private:
@@ -122,33 +115,29 @@ class LoudsDense {
  public:
   LoudsDense() = default;
 
-  LoudsDense(FSTBuilder *builder,
-             const std::vector<std::string> &keys);
+  LoudsDense(FSTBuilder *builder, const std::vector<std::string> &keys);
 
   ~LoudsDense() = default;
 
   // Returns whether key exists in the trie so far
   // out_node_num == 0 means search terminates in louds-dense.
-  bool lookupKey(const std::string &key, position_t &out_node_num,
-                 uint64_t &offset) const;
-
+  bool lookupKey(const std::string &key, position_t &out_node_num, uint64_t &offset) const;
 
   // this function checks if the FST node has only one branch
   bool nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const;
 
   // this function stores the entire node for the given nodeNumber in labels and
   // values vectors
-  void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
+  void getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::vector<uint64_t> &values);
 
-  bool lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_number, uint64_t& value) const;
+  bool lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t &node_number, uint64_t &value) const;
 
-  bool lookupNodeNumber(const char* key, uint64_t  key_length, position_t &out_node_num) const;
+  bool lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const;
 
   bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
 
   // return value indicates potential false positive
-  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
-                            LoudsDense::Iter &iter) const;
+  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive, LoudsDense::Iter &iter) const;
 
   uint64_t getHeight() const { return height_; };
 
@@ -205,49 +194,35 @@ class LoudsDense {
 const position_t LoudsDense::kNodeFanout;
 const position_t LoudsDense::kRankBasicBlockSize;
 
-LoudsDense::LoudsDense(FSTBuilder *builder,
-                       const std::vector<std::string> &keys) {
+LoudsDense::LoudsDense(FSTBuilder *builder, const std::vector<std::string> &keys) {
   keys_ = &keys;
   height_ = builder->getSparseStartLevel();
   std::vector<position_t> num_bits_per_level;
   for (level_t level = 0; level < height_; level++)
-    num_bits_per_level.push_back(builder->getBitmapLabels()[level].size() *
-        kWordSize);
+    num_bits_per_level.push_back(builder->getBitmapLabels()[level].size() * kWordSize);
 
-  label_bitmaps_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize,
-                                                   builder->getBitmapLabels(),
-                                                   num_bits_per_level,
-                                                   0,
-                                                   height_);
-  child_indicator_bitmaps_ =
-      std::make_unique<BitvectorRank>(kRankBasicBlockSize,
-                                      builder->getBitmapChildIndicatorBits(),
-                                      num_bits_per_level,
-                                      0,
-                                      height_);
-  prefixkey_indicator_bits_ =
-      std::make_unique<BitvectorRank>(kRankBasicBlockSize,
-                                      builder->getPrefixkeyIndicatorBits(),
-                                      builder->getNodeCounts(),
-                                      0,
-                                      height_);
+  label_bitmaps_ =
+      std::make_unique<BitvectorRank>(kRankBasicBlockSize, builder->getBitmapLabels(), num_bits_per_level, 0, height_);
+  child_indicator_bitmaps_ = std::make_unique<BitvectorRank>(
+      kRankBasicBlockSize, builder->getBitmapChildIndicatorBits(), num_bits_per_level, 0, height_);
+  prefixkey_indicator_bits_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize, builder->getPrefixkeyIndicatorBits(),
+                                                              builder->getNodeCounts(), 0, height_);
 
   // todo make more efficient by completely moving this vector
   positions_dense_ = builder->getDenseOffsets();
 }
 
-bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
-                           uint64_t &offset) const {
+bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num, uint64_t &offset) const {
   position_t node_num = 0;
   position_t pos = 0;
-  //std::cout << "node numbers in fst: ";
+  // std::cout << "node numbers in fst: ";
   for (level_t level = 0; level < height_; level++) {
-    //std::cout << node_num << ", ";
+    // std::cout << node_num << ", ";
     pos = (node_num * kNodeFanout);
     if (level >= key.length()) {  // if run out of searchKey bytes
       return false;
     }
-    pos += (label_t) key[level];
+    pos += (label_t)key[level];
 
     // child_indicator_bitmaps_->prefetch(pos);
 
@@ -256,9 +231,8 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
     }
 
     if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
-      uint64_t value_index = label_bitmaps_->rank(pos) -
-          child_indicator_bitmaps_->rank(pos) -
-          1;  // + prefix but we do not support this so far
+      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) -
+                             1;  // + prefix but we do not support this so far
       offset = positions_dense_[value_index];
 
       // the following check must be performed by the caller
@@ -272,100 +246,100 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num,
   return true;
 }
 
-inline bool LoudsDense::lookupKeyAtNode(const char* key, uint64_t key_length, level_t level, size_t &node_num, uint64_t& value) const {
-    position_t pos = 0;
-    for (; level < height_; level++) {
-        pos = (node_num * kNodeFanout);
-        if (level >= key_length) {  // if run out of searchKey bytes
-            //std::cout << "[dense] run out of search bytes!" << std::endl;
-            return false;
-        }
-        pos += (label_t) key[level];
-
-        if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
-            //std::cout << "[dense] key byte does not exists!" << std::endl;
-            return false;
-        }
-
-        if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
-            uint64_t value_index = label_bitmaps_->rank(pos) -
-                                   child_indicator_bitmaps_->rank(pos) -
-                                   1;  // + prefix but we do not support this so far
-            value = positions_dense_[value_index];
-
-            // the following check must be performed by the caller
-            // return (*keys_)[value] == key;
-            node_num = 0;
-            return true;
-        }
-        node_num = getChildNodeNum(pos);
+inline bool LoudsDense::lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t &node_num,
+                                        uint64_t &value) const {
+  position_t pos = 0;
+  for (; level < height_; level++) {
+    pos = (node_num * kNodeFanout);
+    if (level >= key_length) {  // if run out of searchKey bytes
+      // std::cout << "[dense] run out of search bytes!" << std::endl;
+      return false;
     }
-    // search will continue in LoudsSparse
-    return true;
+    pos += (label_t)key[level];
+
+    if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
+      // std::cout << "[dense] key byte does not exists!" << std::endl;
+      return false;
+    }
+
+    if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
+      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) -
+                             1;  // + prefix but we do not support this so far
+      value = positions_dense_[value_index];
+
+      // the following check must be performed by the caller
+      // return (*keys_)[value] == key;
+      node_num = 0;
+      return true;
+    }
+    node_num = getChildNodeNum(pos);
+  }
+  // search will continue in LoudsSparse
+  return true;
 }
 
 /// Returns true if one or two of the following conditions evaluate to true:
 /// 1. Node has at least two labels
 /// 2. If has one label that leads not to a child node
-bool LoudsDense::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const {
+bool LoudsDense::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level,
+                                                     std::vector<uint8_t> &prefixLabels) const {
   unsigned label = 0;
   assert(label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) > 0);
   if (label_bitmaps_->getNumSetBitsInDenseNode(nodeNumber, label) == 1) {
     // node has only one label
     position_t pos = (nodeNumber * kNodeFanout) + label;
-    if (!child_indicator_bitmaps_->readBit(pos)) // branch terminates
+    if (!child_indicator_bitmaps_->readBit(pos))  // branch terminates
       return true;
     prefixLabels.emplace_back(label);
     nodeNumber = getChildNodeNum(pos);
     return false;
-  } else { // there are at least two labels in the node
+  } else {  // there are at least two labels in the node
     return true;
   }
 }
 
-void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
+void LoudsDense::getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::vector<uint64_t> &values) {
   position_t pos = (nodeNumber * kNodeFanout);
   label_bitmaps_->prefetch(pos);
   child_indicator_bitmaps_->prefetch(pos);
   for (size_t i = 0; i < 256; i++) {
-      if (label_bitmaps_->readBit(pos + i)) {
-        labels.push_back(i);
-        if (child_indicator_bitmaps_->readBit(pos + i)) { // label leads to child node
-          // inline information in value that it is a FST node Number
-          values.emplace_back(getChildNodeNum(pos + i) << 2U | 3U);
-        } else {
-          // there is a value, push it back and create an ART leaf node
-          uint64_t value_index = label_bitmaps_->rank(pos + i) - child_indicator_bitmaps_->rank(pos + i) - 1;
-          auto value = positions_dense_[value_index];
-          values.emplace_back((value << 2U) | 1U);
-        }
+    if (label_bitmaps_->readBit(pos + i)) {
+      labels.push_back(i);
+      if (child_indicator_bitmaps_->readBit(pos + i)) {  // label leads to child node
+        // inline information in value that it is a FST node Number
+        values.emplace_back(getChildNodeNum(pos + i) << 2U | 3U);
+      } else {
+        // there is a value, push it back and create an ART leaf node
+        uint64_t value_index = label_bitmaps_->rank(pos + i) - child_indicator_bitmaps_->rank(pos + i) - 1;
+        auto value = positions_dense_[value_index];
+        values.emplace_back((value << 2U) | 1U);
       }
+    }
   }
-
 }
 
-bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const {
-    position_t node_num = 0;
-    position_t pos = 0;
-    level_t level = 0;
-    // todo check when to return true but set node_num to 0 -> finished in dense already
-    for (; level < height_ && level < key_length; level++) {
-        pos = (node_num * kNodeFanout);
-        if (level >= key_length) {  // if run out of searchKey bytes
-            out_node_num = node_num;
-            return false;
-        }
-        pos += (label_t) key[level];
-
-        assert(label_bitmaps_->readBit(pos)); // assert that key exists
-        assert(child_indicator_bitmaps_->readBit(pos)); // assert branch does not terminate
-
-        node_num = getChildNodeNum(pos);
+bool LoudsDense::lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const {
+  position_t node_num = 0;
+  position_t pos = 0;
+  level_t level = 0;
+  // todo check when to return true but set node_num to 0 -> finished in dense already
+  for (; level < height_ && level < key_length; level++) {
+    pos = (node_num * kNodeFanout);
+    if (level >= key_length) {  // if run out of searchKey bytes
+      out_node_num = node_num;
+      return false;
     }
+    pos += (label_t)key[level];
 
-    // search will continue in LoudsSparse
-    out_node_num = node_num;
-    return true;
+    assert(label_bitmaps_->readBit(pos));            // assert that key exists
+    assert(child_indicator_bitmaps_->readBit(pos));  // assert branch does not terminate
+
+    node_num = getChildNodeNum(pos);
+  }
+
+  // search will continue in LoudsSparse
+  out_node_num = node_num;
+  return true;
 };
 
 // returns true if next node or value is found, false if keyByte is not immanent
@@ -375,31 +349,28 @@ bool LoudsDense::lookupNodeNumber(const char* key, uint64_t key_length, position
 //  - in this case, return result and set the last to bits to 11
 // 3. keyByte does not exist in given node
 //  - return false
-bool LoudsDense::findNextNodeOrValue(const char keyByte, size_t &node_number) const{
+bool LoudsDense::findNextNodeOrValue(const char keyByte, size_t &node_number) const {
   // todo careful, node_number has uses only 62 bits
-  //std::cout << "in [dense] lookup" << std::endl;
-  position_t pos = (node_number * kNodeFanout) + ((label_t) keyByte);
-  if (!label_bitmaps_->readBit(pos)) { // key not immanent
-    //std::cout << "key not immanent in dense!" << std::endl;
+  // std::cout << "in [dense] lookup" << std::endl;
+  position_t pos = (node_number * kNodeFanout) + ((label_t)keyByte);
+  if (!label_bitmaps_->readBit(pos)) {  // key not immanent
+    // std::cout << "key not immanent in dense!" << std::endl;
     return false;
   }
 
   // key exists
-  if (!child_indicator_bitmaps_->readBit(pos)) { // branch terminates
-      //std::cout << "dense value found" << std::endl;
-      uint64_t value_index =
-        label_bitmaps_->rank(pos) -
-        child_indicator_bitmaps_->rank(pos) - 1;
-        node_number = (positions_dense_[value_index] << 2u) | 1u ;
-  } else { // branch continues
-      //std::cout << "dense branch continues" << std::endl;
-      node_number = (getChildNodeNum(pos) << 2u) | 3u;
+  if (!child_indicator_bitmaps_->readBit(pos)) {  // branch terminates
+    // std::cout << "dense value found" << std::endl;
+    uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
+    node_number = (positions_dense_[value_index] << 2u) | 1u;
+  } else {  // branch continues
+    // std::cout << "dense branch continues" << std::endl;
+    node_number = (getChildNodeNum(pos) << 2u) | 3u;
   }
   return true;
 }
 
-void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
-                                      const bool inclusive,
+void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key, const bool inclusive,
                                       LoudsDense::Iter &iter) const {
   position_t node_num = 0;
   position_t pos = 0;
@@ -409,21 +380,21 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
     if (level >= searched_key.length()) {  // if run out of searchKey bytes
       // CA: key too short, -> dense (& sparse) traverse to leftmost key a
       iter.append(getNextPos(pos - 1));
-      //if (prefixkey_indicator_bits_->readBit(node_num))  // if the prefix is also a key
+      // if (prefixkey_indicator_bits_->readBit(node_num))  // if the prefix is also a key
       //  iter.is_at_prefix_key_ = true;
-      //else
+      // else
       iter.moveToLeftMostKey();
       // valid, search complete, moveLeft complete, moveRight complete
-      //iter.setFlags(true, true, true, true);
+      // iter.setFlags(true, true, true, true);
       return;
     }
 
-    pos += (label_t) searched_key[level];
+    pos += (label_t)searched_key[level];
     iter.append(pos);
 
     // if no exact match
     if (!label_bitmaps_->readBit(pos)) {
-      iter.moveToLeftMostKey(); // search could continue in sparse levels
+      iter.moveToLeftMostKey();  // search could continue in sparse levels
       return;
     }
 
@@ -435,15 +406,15 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
       if (found_key > searched_key) {
         iter.setFlags(true, true, true, true);
       } else if (found_key < searched_key) {
-        iter++; // no exact match, inclusive flag is not relevant
-      } else { // found_key == searched_key
+        iter++;  // no exact match, inclusive flag is not relevant
+      } else {   // found_key == searched_key
         if (!inclusive)
           iter++;
         else
           iter.setFlags(true, true, true, true);
       }
       // set value index here
-      //iter.rankValuePosition(pos);
+      // iter.rankValuePosition(pos);
       return;
     }
     node_num = getChildNodeNum(pos);
@@ -456,32 +427,24 @@ void LoudsDense::moveToKeyGreaterThan(const std::string &searched_key,
 }
 
 uint64_t LoudsDense::serializedSize() const {
-  uint64_t size = sizeof(height_) + label_bitmaps_->serializedSize() +
-      child_indicator_bitmaps_->serializedSize() +
-      prefixkey_indicator_bits_->serializedSize();
+  uint64_t size = sizeof(height_) + label_bitmaps_->serializedSize() + child_indicator_bitmaps_->serializedSize() +
+                  prefixkey_indicator_bits_->serializedSize();
   sizeAlign(size);
   return size;
 }
 
 uint64_t LoudsDense::getMemoryUsage() const {
-  return (sizeof(LoudsDense) + label_bitmaps_->size() +
-      child_indicator_bitmaps_->size() + prefixkey_indicator_bits_->size()
-      + positions_dense_.size() * 8);
+  return (sizeof(LoudsDense) + label_bitmaps_->size() + child_indicator_bitmaps_->size() +
+          prefixkey_indicator_bits_->size() + positions_dense_.size() * 8);
 }
 
-position_t LoudsDense::getChildNodeNum(const position_t pos) const {
-  return child_indicator_bitmaps_->rank(pos);
-}
+position_t LoudsDense::getChildNodeNum(const position_t pos) const { return child_indicator_bitmaps_->rank(pos); }
 
-position_t LoudsDense::getSuffixPos(const position_t pos,
-                                    const bool is_prefix_key) const {
+position_t LoudsDense::getSuffixPos(const position_t pos, const bool is_prefix_key) const {
   position_t node_num = pos / kNodeFanout;
   position_t suffix_pos =
-      (label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) +
-          prefixkey_indicator_bits_->rank(node_num) - 1);
-  if (is_prefix_key && label_bitmaps_->readBit(pos) &&
-      !child_indicator_bitmaps_->readBit(pos))
-    suffix_pos--;
+      (label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) + prefixkey_indicator_bits_->rank(node_num) - 1);
+  if (is_prefix_key && label_bitmaps_->readBit(pos) && !child_indicator_bitmaps_->readBit(pos)) suffix_pos--;
   return suffix_pos;
 }
 
@@ -489,8 +452,7 @@ position_t LoudsDense::getNextPos(const position_t pos) const {
   return pos + label_bitmaps_->distanceToNextSetBit(pos);
 }
 
-position_t LoudsDense::getPrevPos(const position_t pos,
-                                  bool *is_out_of_bound) const {
+position_t LoudsDense::getPrevPos(const position_t pos, bool *is_out_of_bound) const {
   position_t distance = label_bitmaps_->distanceToPrevSetBit(pos);
   if (pos <= distance) {
     *is_out_of_bound = true;
@@ -521,25 +483,23 @@ std::string LoudsDense::Iter::getKey() const {
   if (!is_valid_) return std::string();
   level_t len = key_len_;
   if (is_at_prefix_key_) len--;
-  return std::string((const char *) key_.data(), (size_t) len);
+  return std::string((const char *)key_.data(), (size_t)len);
 }
 
 void LoudsDense::Iter::append(position_t pos) {
   assert(key_len_ < key_.size());
-  key_[key_len_] = (label_t) (pos % kNodeFanout);
+  key_[key_len_] = (label_t)(pos % kNodeFanout);
   pos_in_trie_[key_len_] = pos;
   key_len_++;
 }
 
 void LoudsDense::Iter::set(level_t level, position_t pos) {
   assert(level < key_.size());
-  key_[level] = (label_t) (pos % kNodeFanout);
+  key_[level] = (label_t)(pos % kNodeFanout);
   pos_in_trie_[level] = pos;
 }
 
-void LoudsDense::Iter::setFlags(const bool is_valid,
-                                const bool is_search_complete,
-                                const bool is_move_left_complete,
+void LoudsDense::Iter::setFlags(const bool is_valid, const bool is_search_complete, const bool is_move_left_complete,
                                 const bool is_move_right_complete) {
   is_valid_ = is_valid;
   is_search_complete_ = is_search_complete;
@@ -550,10 +510,10 @@ void LoudsDense::Iter::setFlags(const bool is_valid,
 void LoudsDense::Iter::setToFirstLabelInRoot() {
   if (trie_->label_bitmaps_->readBit(0)) {
     pos_in_trie_[0] = 0;
-    key_[0] = (label_t) 0;
+    key_[0] = (label_t)0;
   } else {
     pos_in_trie_[0] = trie_->getNextPos(0);
-    key_[0] = (label_t) pos_in_trie_[0];
+    key_[0] = (label_t)pos_in_trie_[0];
   }
   key_len_++;
 }
@@ -561,7 +521,7 @@ void LoudsDense::Iter::setToFirstLabelInRoot() {
 void LoudsDense::Iter::setToLastLabelInRoot() {
   bool is_out_of_bound;
   pos_in_trie_[0] = trie_->getPrevPos(kNodeFanout, &is_out_of_bound);
-  key_[0] = (label_t) pos_in_trie_[0];
+  key_[0] = (label_t)pos_in_trie_[0];
   key_len_++;
 }
 
@@ -632,22 +592,17 @@ void LoudsDense::Iter::moveToRightMostKey() {
   setFlags(true, true, true, false);
 }
 
-uint64_t LoudsDense::Iter::getLastIteratorPosition() const {
-  return pos_in_trie_[key_len_ - 1];
-}
+uint64_t LoudsDense::Iter::getLastIteratorPosition() const { return pos_in_trie_[key_len_ - 1]; }
 
-uint64_t LoudsDense::Iter::getValue() const {
-  return trie_->positions_dense_[value_pos_[key_len_ - 1]];
-}
+uint64_t LoudsDense::Iter::getValue() const { return trie_->positions_dense_[value_pos_[key_len_ - 1]]; }
 
 void LoudsDense::Iter::rankValuePosition(size_t pos) {
   if (value_pos_initialized_[key_len_ - 1]) {
     value_pos_[key_len_ - 1]++;
   } else {  // initially rank value position here
     value_pos_initialized_[key_len_ - 1] = true;
-    uint64_t value_index = trie_->label_bitmaps_->rank(pos) -
-        trie_->child_indicator_bitmaps_->rank(pos) -
-        1;  // + prefix but we do not support this so far
+    uint64_t value_index = trie_->label_bitmaps_->rank(pos) - trie_->child_indicator_bitmaps_->rank(pos) -
+                           1;  // + prefix but we do not support this so far
     value_pos_[key_len_ - 1] = value_index;
   }
 }

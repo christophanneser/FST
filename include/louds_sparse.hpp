@@ -21,14 +21,10 @@ class LoudsSparse {
           start_level_(0),
           start_node_num_(0),
           key_len_(0),
-          is_at_terminator_(false) {};
+          is_at_terminator_(false){};
 
     explicit Iter(LoudsSparse *trie)
-        : is_valid_(false),
-          trie_(trie),
-          start_node_num_(0),
-          key_len_(0),
-          is_at_terminator_(false) {
+        : is_valid_(false), trie_(trie), start_node_num_(0), key_len_(0), is_at_terminator_(false) {
       start_level_ = trie_->getStartLevel();
       for (level_t level = start_level_; level < trie_->getHeight(); level++) {
         key_.push_back(0);
@@ -80,8 +76,7 @@ class LoudsSparse {
     LoudsSparse *trie_;
     level_t start_level_;
     position_t start_node_num_;  // Passed in by the dense iterator; default = 0
-    level_t
-        key_len_;  // Start counting from start_level_; does NOT include suffix
+    level_t key_len_;            // Start counting from start_level_; does NOT include suffix
 
     std::vector<label_t> key_;
     std::vector<position_t> pos_in_trie_;
@@ -95,7 +90,7 @@ class LoudsSparse {
   };
 
  public:
-  LoudsSparse() {};
+  LoudsSparse(){};
 
   LoudsSparse(const FSTBuilder *builder, const std::vector<std::string> &keys);
 
@@ -103,22 +98,20 @@ class LoudsSparse {
 
   // point query: trie walk starts at node "in_node_num" instead of root
   // in_node_num is provided by louds-dense's lookupKey function
-  bool lookupKey(const std::string &key, position_t in_node_num,
-                 uint64_t &offset) const;
+  bool lookupKey(const std::string &key, position_t in_node_num, uint64_t &offset) const;
 
-  bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
-                   uint64_t &offset, uint64_t level) const;
+  bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num, uint64_t &offset,
+                       uint64_t level) const;
 
   bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
 
   bool nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const;
 
-  void getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values);
+  void getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::vector<uint64_t> &values);
 
-  void lookupNodeNumber(const char* key, uint64_t key_length, position_t &out_node_num) const;
+  void lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const;
 
-  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive,
-                            LoudsSparse::Iter &iter) const;
+  void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive, LoudsSparse::Iter &iter) const;
 
   level_t getHeight() const { return height_; };
 
@@ -148,14 +141,11 @@ class LoudsSparse {
     std::unique_ptr<LoudsSparse> louds_sparse = std::make_unique<LoudsSparse>();
     memcpy(&(louds_sparse->height_), src, sizeof(louds_sparse->height_));
     src += sizeof(louds_sparse->height_);
-    memcpy(&(louds_sparse->start_level_), src,
-           sizeof(louds_sparse->start_level_));
+    memcpy(&(louds_sparse->start_level_), src, sizeof(louds_sparse->start_level_));
     src += sizeof(louds_sparse->start_level_);
-    memcpy(&(louds_sparse->node_count_dense_), src,
-           sizeof(louds_sparse->node_count_dense_));
+    memcpy(&(louds_sparse->node_count_dense_), src, sizeof(louds_sparse->node_count_dense_));
     src += sizeof(louds_sparse->node_count_dense_);
-    memcpy(&(louds_sparse->child_count_dense_), src,
-           sizeof(louds_sparse->child_count_dense_));
+    memcpy(&(louds_sparse->child_count_dense_), src, sizeof(louds_sparse->child_count_dense_));
     src += sizeof(louds_sparse->child_count_dense_);
     align(src);
     louds_sparse->labels_ = LabelVector::deSerialize(src);
@@ -178,13 +168,10 @@ class LoudsSparse {
 
   bool isEndofNode(position_t pos) const;
 
-  void moveToLeftInNextSubtrie(position_t pos, position_t node_size,
-                               label_t label,
-                               LoudsSparse::Iter &iter) const;
+  void moveToLeftInNextSubtrie(position_t pos, position_t node_size, label_t label, LoudsSparse::Iter &iter) const;
 
   // return value indicates potential false positive
-  bool compareSuffixGreaterThan(position_t pos, const std::string &key,
-                                level_t level, bool inclusive,
+  bool compareSuffixGreaterThan(position_t pos, const std::string &key, level_t level, bool inclusive,
                                 LoudsSparse::Iter &iter) const;
 
  private:
@@ -210,8 +197,7 @@ class LoudsSparse {
 const position_t LoudsSparse::kRankBasicBlockSize;
 const position_t LoudsSparse::kSelectSampleInterval;
 
-LoudsSparse::LoudsSparse(const FSTBuilder *builder,
-                         const std::vector<std::string> &keys) {
+LoudsSparse::LoudsSparse(const FSTBuilder *builder, const std::vector<std::string> &keys) {
   keys_ = &keys;
   height_ = builder->getLabels().size();
   start_level_ = builder->getSparseStartLevel();
@@ -223,47 +209,35 @@ LoudsSparse::LoudsSparse(const FSTBuilder *builder,
   if (start_level_ == 0) {
     child_count_dense_ = 0;
   } else {
-    child_count_dense_ =
-        node_count_dense_ + builder->getNodeCounts()[start_level_] - 1;
+    child_count_dense_ = node_count_dense_ + builder->getNodeCounts()[start_level_] - 1;
   }
-  labels_ = std::make_unique<LabelVector>(builder->getLabels(),
-                                          start_level_,
-                                          height_);
+  labels_ = std::make_unique<LabelVector>(builder->getLabels(), start_level_, height_);
 
   std::vector<position_t> num_items_per_level;
   for (level_t level = 0; level < height_; level++) {
     num_items_per_level.push_back(builder->getLabels()[level].size());
   }
-  child_indicator_bits_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize,
-                                                          builder->getChildIndicatorBits(),
-                                                          num_items_per_level,
-                                                          start_level_,
-                                                          height_);
-  louds_bits_ = std::make_unique<BitvectorSelect>(kSelectSampleInterval,
-                                                  builder->getLoudsBits(),
-                                                  num_items_per_level,
-                                                  start_level_,
-                                                  height_);
+  child_indicator_bits_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize, builder->getChildIndicatorBits(),
+                                                          num_items_per_level, start_level_, height_);
+  louds_bits_ = std::make_unique<BitvectorSelect>(kSelectSampleInterval, builder->getLoudsBits(), num_items_per_level,
+                                                  start_level_, height_);
 
   positions_sparse_ = builder->getSparseOffsets();
 }
 
-bool LoudsSparse::lookupKey(const std::string &key,
-                            const position_t in_node_num,
-                            uint64_t &offset) const {
+bool LoudsSparse::lookupKey(const std::string &key, const position_t in_node_num, uint64_t &offset) const {
   position_t node_num = in_node_num;
   position_t pos = getFirstLabelPos(node_num);
   level_t level = 0;
   for (level = start_level_; level < key.length(); level++) {
     // child_indicator_bits_->prefetch(pos);
-    if (!labels_->search((label_t) key[level], pos, nodeSize(pos)))
-      return false;
+    if (!labels_->search((label_t)key[level], pos, nodeSize(pos))) return false;
 
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
       offset = positions_sparse_[value_pos];
-      //this check must be performed from the caller
+      // this check must be performed from the caller
       // return (*keys_)[value] == key;
       return true;
     }
@@ -275,31 +249,28 @@ bool LoudsSparse::lookupKey(const std::string &key,
   return false;
 }
 
-inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
-                                  uint64_t &offset, uint64_t level) const {
-    position_t node_num = in_node_num;
-    position_t pos = getFirstLabelPos(node_num);
-    for (; level < key_length; level++) {
-        // child_indicator_bits_->prefetch(pos);
-        if (!labels_->search((label_t) key[level],
-                             pos,
-                             nodeSize(pos)))
-            return false;
+inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num, uint64_t &offset,
+                                         uint64_t level) const {
+  position_t node_num = in_node_num;
+  position_t pos = getFirstLabelPos(node_num);
+  for (; level < key_length; level++) {
+    // child_indicator_bits_->prefetch(pos);
+    if (!labels_->search((label_t)key[level], pos, nodeSize(pos))) return false;
 
-        // if trie branch terminates
-        if (!child_indicator_bits_->readBit(pos)) {
-            uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-            offset = positions_sparse_[value_pos];
-            //this check must be performed from the caller
-            // return (*keys_)[value] == key;
-            return true;
-        }
-
-        // move to child
-        node_num = getChildNodeNum(pos);
-        pos = getFirstLabelPos(node_num);
+    // if trie branch terminates
+    if (!child_indicator_bits_->readBit(pos)) {
+      uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
+      offset = positions_sparse_[value_pos];
+      // this check must be performed from the caller
+      // return (*keys_)[value] == key;
+      return true;
     }
-    return false;
+
+    // move to child
+    node_num = getChildNodeNum(pos);
+    pos = getFirstLabelPos(node_num);
+  }
+  return false;
 }
 
 // returns true if next node or value is found, false if keyByte is not immanent
@@ -312,29 +283,29 @@ inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, p
 bool LoudsSparse::findNextNodeOrValue(const char keyByte, size_t &node_num) const {
   position_t pos = getFirstLabelPos(node_num);
 
-  if (!labels_->search((label_t) keyByte, pos, nodeSize(pos))) {
-    return false; // key does not exist
+  if (!labels_->search((label_t)keyByte, pos, nodeSize(pos))) {
+    return false;  // key does not exist
   }
   // find next node or value
-  if (!child_indicator_bits_->readBit(pos)) { // branch terminates
+  if (!child_indicator_bits_->readBit(pos)) {  // branch terminates
     uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
     uint64_t offset = positions_sparse_[value_pos];
     node_num = (offset << 2u) | 1u;
-  } else { // branch continues
+  } else {  // branch continues
     node_num = (getChildNodeNum(pos) << 2u) | 3u;
   }
   return true;
 }
 
-void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std::vector<uint64_t > &values) {
+void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::vector<uint64_t> &values) {
   position_t pos = getFirstLabelPos(nodeNumber);
   size_t size = nodeSize(pos);
   for (size_t i = pos; i < pos + size; i++) {
     labels.emplace_back(labels_->operator[](i));
-    if (child_indicator_bits_->readBit(i)) { // there is a child node
+    if (child_indicator_bits_->readBit(i)) {  // there is a child node
       auto childNodeNum = getChildNodeNum(i);
       values.emplace_back(childNodeNum << 2U | 3U);
-    } else { // leads to a value
+    } else {  // leads to a value
       uint64_t value_pos = i - child_indicator_bits_->rank(i);
       auto offset = positions_sparse_[value_pos];
       values.emplace_back(offset << 2U | 1U);
@@ -342,7 +313,8 @@ void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t > &labels, std:
   }
 }
 
-bool LoudsSparse::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level, std::vector<uint8_t> &prefixLabels) const {
+bool LoudsSparse::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t level,
+                                                      std::vector<uint8_t> &prefixLabels) const {
   position_t pos = getFirstLabelPos(nodeNumber);
   size_t size = nodeSize(pos);
   if (size == 1) {
@@ -356,22 +328,20 @@ bool LoudsSparse::nodeHasMultipleBranchesOrTerminates(size_t &nodeNumber, size_t
   return true;
 }
 
-void LoudsSparse::lookupNodeNumber(const char* key, uint64_t key_length, position_t &node_num) const {
-    position_t pos = getFirstLabelPos(node_num);
+void LoudsSparse::lookupNodeNumber(const char *key, uint64_t key_length, position_t &node_num) const {
+  position_t pos = getFirstLabelPos(node_num);
 
-    for (uint64_t level = start_level_; level < key_length; level++) {
-        bool found_label = labels_->search((label_t) key[level], pos, nodeSize(pos));
-        assert(found_label);
-        assert(child_indicator_bits_->readBit(pos));
-        // move to child
-        node_num = getChildNodeNum(pos);
-        pos = getFirstLabelPos(node_num);
-    }
+  for (uint64_t level = start_level_; level < key_length; level++) {
+    bool found_label = labels_->search((label_t)key[level], pos, nodeSize(pos));
+    assert(found_label);
+    assert(child_indicator_bits_->readBit(pos));
+    // move to child
+    node_num = getChildNodeNum(pos);
+    pos = getFirstLabelPos(node_num);
+  }
 }
 
-
-void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
-                                       const bool inclusive,
+void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key, const bool inclusive,
                                        LoudsSparse::Iter &iter) const {
   position_t node_num = iter.getStartNodeNum();
   position_t pos = getFirstLabelPos(node_num);
@@ -380,14 +350,14 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
   for (level = start_level_; level < searched_key.length(); level++) {
     position_t node_size = nodeSize(pos);
     // if no exact match
-    if (!labels_->search((label_t) searched_key[level], pos, node_size)) {
+    if (!labels_->search((label_t)searched_key[level], pos, node_size)) {
       // do not return false, but just move to the next bigger key?
       moveToLeftInNextSubtrie(pos, node_size, searched_key[level], iter);
       return;
     }
     iter.append(searched_key[level], pos);
 
-    if (!child_indicator_bits_->readBit(pos)) { // / trie branch terminates
+    if (!child_indicator_bits_->readBit(pos)) {  // / trie branch terminates
       iter.rankValuePosition(pos);
       auto found_key = (*keys_)[iter.getValue()];
 
@@ -395,7 +365,7 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
         iter.is_valid_ = true;
       } else if (found_key < searched_key) {
         iter++;
-      } else { // found_key == searched_key
+      } else {  // found_key == searched_key
         if (!inclusive)
           iter++;
         else
@@ -408,8 +378,7 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
     pos = getFirstLabelPos(node_num);
   }
 
-  if ((labels_->read(pos) == kTerminator) &&
-      (!child_indicator_bits_->readBit(pos)) && !isEndofNode(pos)) {
+  if ((labels_->read(pos) == kTerminator) && (!child_indicator_bits_->readBit(pos)) && !isEndofNode(pos)) {
     iter.append(kTerminator, pos);
     iter.is_at_terminator_ = true;
     if (!inclusive) iter++;
@@ -427,18 +396,15 @@ void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
 }
 
 uint64_t LoudsSparse::serializedSize() const {
-  uint64_t size =
-      sizeof(height_) + sizeof(start_level_) + sizeof(node_count_dense_) +
-          sizeof(child_count_dense_) + labels_->serializedSize() +
-          child_indicator_bits_->serializedSize()
-          + louds_bits_->serializedSize();
+  uint64_t size = sizeof(height_) + sizeof(start_level_) + sizeof(node_count_dense_) + sizeof(child_count_dense_) +
+                  labels_->serializedSize() + child_indicator_bits_->serializedSize() + louds_bits_->serializedSize();
   sizeAlign(size);
   return size;
 }
 
 uint64_t LoudsSparse::getMemoryUsage() const {
-  return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() +
-      louds_bits_->size() + positions_sparse_.size() * 8);
+  return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() + louds_bits_->size() +
+          positions_sparse_.size() * 8);
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {
@@ -455,9 +421,7 @@ position_t LoudsSparse::getLastLabelPos(const position_t node_num) const {
   return (louds_bits_->select(next_rank) - 1);
 }
 
-position_t LoudsSparse::getSuffixPos(const position_t pos) const {
-  return (pos - child_indicator_bits_->rank(pos));
-}
+position_t LoudsSparse::getSuffixPos(const position_t pos) const { return (pos - child_indicator_bits_->rank(pos)); }
 
 position_t LoudsSparse::nodeSize(const position_t pos) const {
   assert(louds_bits_->readBit(pos));
@@ -468,9 +432,7 @@ bool LoudsSparse::isEndofNode(const position_t pos) const {
   return ((pos == louds_bits_->numBits() - 1) || louds_bits_->readBit(pos + 1));
 }
 
-void LoudsSparse::moveToLeftInNextSubtrie(position_t pos,
-                                          const position_t node_size,
-                                          const label_t label,
+void LoudsSparse::moveToLeftInNextSubtrie(position_t pos, const position_t node_size, const label_t label,
                                           LoudsSparse::Iter &iter) const {
   // if no label is greater than key[level] in this node
   if (!labels_->searchGreaterThan(label, pos, node_size)) {
@@ -482,11 +444,8 @@ void LoudsSparse::moveToLeftInNextSubtrie(position_t pos,
   }
 }
 
-bool LoudsSparse::compareSuffixGreaterThan(const position_t pos,
-                                           const std::string &key,
-                                           const level_t level,
-                                           const bool inclusive,
-                                           LoudsSparse::Iter &iter) const {
+bool LoudsSparse::compareSuffixGreaterThan(const position_t pos, const std::string &key, const level_t level,
+                                           const bool inclusive, LoudsSparse::Iter &iter) const {
   // position_t suffix_pos = getSuffixPos(pos);
   // int compare = suffixes_->compare(suffix_pos, key, level);
   // if ((compare != kCouldBePositive) && (compare < 0)) {
@@ -506,8 +465,7 @@ void LoudsSparse::Iter::clear() {
 }
 
 int LoudsSparse::Iter::compare(const std::string &key) const {
-  if (is_at_terminator_ && (key_len_ - 1) < (key.length() - start_level_))
-    return -1;
+  if (is_at_terminator_ && (key_len_ - 1) < (key.length() - start_level_)) return -1;
   std::string iter_key = getKey();
   std::string key_sparse = key.substr(start_level_);
   std::string key_sparse_same_length = key_sparse.substr(0, iter_key.length());
@@ -520,7 +478,7 @@ std::string LoudsSparse::Iter::getKey() const {
   if (!is_valid_) return std::string();
   level_t len = key_len_;
   if (is_at_terminator_) len--;
-  return std::string((const char *) key_.data(), (size_t) len);
+  return std::string((const char *)key_.data(), (size_t)len);
 }
 
 void LoudsSparse::Iter::append(const position_t pos) {
@@ -567,8 +525,7 @@ void LoudsSparse::Iter::moveToLeftMostKey() {
   label_t label = trie_->labels_->read(pos);
 
   if (!trie_->child_indicator_bits_->readBit(pos)) {
-    if ((label == kTerminator) && !trie_->isEndofNode(pos))
-      is_at_terminator_ = true;
+    if ((label == kTerminator) && !trie_->isEndofNode(pos)) is_at_terminator_ = true;
     is_valid_ = true;
     rankValuePosition(pos);
     return;
@@ -581,8 +538,7 @@ void LoudsSparse::Iter::moveToLeftMostKey() {
     // if trie branch terminates
     if (!trie_->child_indicator_bits_->readBit(pos)) {
       append(label, pos);
-      if ((label == kTerminator) && !trie_->isEndofNode(pos))
-        is_at_terminator_ = true;
+      if ((label == kTerminator) && !trie_->isEndofNode(pos)) is_at_terminator_ = true;
       rankValuePosition(pos);
       is_valid_ = true;
       return;
@@ -607,8 +563,7 @@ void LoudsSparse::Iter::moveToRightMostKey() {
   label_t label = trie_->labels_->read(pos);
 
   if (!trie_->child_indicator_bits_->readBit(pos)) {
-    if ((label == kTerminator) && !trie_->isEndofNode(pos))
-      is_at_terminator_ = true;
+    if ((label == kTerminator) && !trie_->isEndofNode(pos)) is_at_terminator_ = true;
     is_valid_ = true;
     return;
   }
@@ -620,8 +575,7 @@ void LoudsSparse::Iter::moveToRightMostKey() {
     // if trie branch terminates
     if (!trie_->child_indicator_bits_->readBit(pos)) {
       append(label, pos);
-      if ((label == kTerminator) && !trie_->isEndofNode(pos))
-        is_at_terminator_ = true;
+      if ((label == kTerminator) && !trie_->isEndofNode(pos)) is_at_terminator_ = true;
       is_valid_ = true;
       return;
     }
@@ -631,13 +585,9 @@ void LoudsSparse::Iter::moveToRightMostKey() {
   assert(false);  // shouldn't reach here
 }
 
-uint64_t LoudsSparse::Iter::getValue() const {
-  return trie_->positions_sparse_[value_pos_[key_len_ - 1]];
-}
+uint64_t LoudsSparse::Iter::getValue() const { return trie_->positions_sparse_[value_pos_[key_len_ - 1]]; }
 
-uint64_t LoudsSparse::Iter::getLastIteratorPosition() const {
-  return pos_in_trie_[key_len_ - 1];
-};
+uint64_t LoudsSparse::Iter::getLastIteratorPosition() const { return pos_in_trie_[key_len_ - 1]; };
 
 void LoudsSparse::Iter::rankValuePosition(size_t pos) {
   if (value_pos_initialized_[key_len_ - 1]) {
@@ -655,8 +605,7 @@ void LoudsSparse::Iter::operator++(int) {
   position_t pos = pos_in_trie_[key_len_ - 1];
   pos++;
   // trie_->louds_bits_ is set for last label in a node -> node terminates here
-  while (pos >= trie_->louds_bits_->numBits() ||
-      trie_->louds_bits_->readBit(pos)) {
+  while (pos >= trie_->louds_bits_->numBits() || trie_->louds_bits_->readBit(pos)) {
     key_len_--;
     if (key_len_ == 0) {
       is_valid_ = false;

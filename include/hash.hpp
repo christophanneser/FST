@@ -45,13 +45,9 @@ inline uint32_t Hash(const char *data, size_t n, uint32_t seed) {
   return h;
 }
 
-inline uint32_t suffixHash(const std::string &key) {
-  return Hash(key.c_str(), key.size(), 0xbc9f1d34);
-}
+inline uint32_t suffixHash(const std::string &key) { return Hash(key.c_str(), key.size(), 0xbc9f1d34); }
 
-inline uint32_t suffixHash(const char *key, const int keylen) {
-  return Hash(key, keylen, 0xbc9f1d34);
-}
+inline uint32_t suffixHash(const char *key, const int keylen) { return Hash(key, keylen, 0xbc9f1d34); }
 
 }  // namespace fst
 
