@@ -9,6 +9,10 @@
 #include "rank.hpp"
 #include "select.hpp"
 
+#ifdef value_compression
+#include <sdsl/int_vector.hpp>
+#endif
+
 namespace fst {
 
 class LoudsSparse {
@@ -121,6 +125,8 @@ class LoudsSparse {
 
   uint64_t getMemoryUsage() const;
 
+  uint64_t getMemoryUsageValues() const;
+
   void serialize(char *&dst) const {
     memcpy(dst, &height_, sizeof(height_));
     dst += sizeof(height_);
@@ -178,7 +184,11 @@ class LoudsSparse {
   static const position_t kRankBasicBlockSize = 512;
   static const position_t kSelectSampleInterval = 64;
 
+#ifndef value_compression
   std::vector<uint64_t> positions_sparse_;
+#else
+  sdsl::int_vector<> positions_sparse_;
+#endif
 
   level_t height_;       // trie height
   level_t start_level_;  // louds-sparse encoding starts at this level
@@ -404,7 +414,15 @@ uint64_t LoudsSparse::serializedSize() const {
 
 uint64_t LoudsSparse::getMemoryUsage() const {
   return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() + louds_bits_->size() +
-          positions_sparse_.size() * 8);
+          getMemoryUsageValues());
+}
+
+uint64_t LoudsSparse::getMemoryUsageValues() const {
+#ifndef value_compression
+  return positions_sparse_.size() * 8;
+#else
+  return sdsl::size_in_bytes(positions_sparse_);
+#endif
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {

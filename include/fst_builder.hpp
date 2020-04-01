@@ -8,6 +8,8 @@
 #include "config.hpp"
 #include "hash.hpp"
 
+#include <sdsl/int_vector.hpp>
+
 namespace fst {
 
 class FSTBuilder {
@@ -51,9 +53,15 @@ class FSTBuilder {
   const std::vector<position_t> &getNodeCounts() const { return node_counts_; }
   level_t getSparseStartLevel() const { return sparse_start_level_; }
 
+#ifndef value_compression
   std::vector<uint64_t> getDenseOffsets() const { return positions_dense_; }
-
   std::vector<uint64_t> getSparseOffsets() const { return positions_sparse_; }
+#endif
+
+#ifdef value_compression
+  sdsl::int_vector<> getDenseOffsets() const { return positions_dense_int_vector; }
+  sdsl::int_vector<> getSparseOffsets() const { return positions_sparse_int_vector; }
+#endif
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) { return a == b; }
@@ -117,13 +125,17 @@ class FSTBuilder {
   std::vector<std::vector<label_t>> labels_;
   std::vector<std::vector<word_t>> child_indicator_bits_;
   std::vector<std::vector<word_t>> louds_bits_;
-  std::vector<uint64_t> positions_sparse_;
 
   // LOUDS-Dense bit vectors
   std::vector<std::vector<word_t>> bitmap_labels_;
   std::vector<std::vector<word_t>> bitmap_child_indicator_bits_;
   std::vector<std::vector<word_t>> prefixkey_indicator_bits_;
+
   std::vector<uint64_t> positions_dense_;
+  std::vector<uint64_t> positions_sparse_;
+
+  sdsl::int_vector<> positions_dense_int_vector;
+  sdsl::int_vector<> positions_sparse_int_vector;
 
   // auxiliary per level bookkeeping vectors
   std::vector<position_t> node_counts_;
@@ -246,9 +258,35 @@ inline void FSTBuilder::determineCutoffLevel() {
     positions_dense_.insert(positions_dense_.end(), positions_[level].begin(), positions_[level].end());
   }
 
+  // copy data to succinct int_vector
+  positions_dense_int_vector.width(64);
+  positions_dense_int_vector.resize(positions_dense_.size());
+  positions_dense_int_vector.resize(positions_dense_.size());
+  std::memcpy(positions_dense_int_vector.data(), positions_dense_.data(), positions_dense_.size() * 8);
+  sdsl::util::bit_compress(positions_dense_int_vector);
+
+  // assert that copy works
+  for (auto i = 0ULL; i < positions_dense_.size(); i++) {
+    assert(positions_dense_[i] == positions_dense_int_vector[i]);
+  }
+
   for (uint64_t level = sparse_start_level_; level < positions_.size(); level++) {
     positions_sparse_.insert(positions_sparse_.end(), positions_[level].begin(), positions_[level].end());
   }
+
+  // copy data to succinct int_vector
+  positions_sparse_int_vector.width(64);
+  positions_sparse_int_vector.resize(positions_sparse_.size());
+  std::memcpy(positions_sparse_int_vector.data(), positions_sparse_.data(), positions_sparse_.size() * 8);
+  sdsl::util::bit_compress(positions_sparse_int_vector);
+
+  // assert that copy works
+  for (auto i = 0ULL; i < positions_sparse_.size(); i++) {
+    assert(positions_sparse_[i] == positions_sparse_int_vector[i]);
+  }
+  std::cout << "bytes used by int vector: " << std::to_string(sdsl::size_in_bytes(positions_dense_int_vector))
+            << std::endl;
+  std::cout << "bytes used by normal vector: " << std::to_string(positions_dense_.size() * 8) << std::endl;
   positions_.clear();
 }
 

@@ -138,6 +138,8 @@ class FST {
 
   uint64_t getMemoryUsage() const;
 
+  std::string getMemoryUsageDetails() const;
+
   level_t getHeight() const;
 
   level_t getSparseStartLevel() const;
@@ -368,6 +370,8 @@ uint64_t FST::serializedSize() const { return (louds_dense_->serializedSize() + 
 uint64_t FST::getMemoryUsage() const {
   return (sizeof(FST) + louds_dense_->getMemoryUsage() + louds_sparse_->getMemoryUsage());
 }
+
+std::string FST::getMemoryUsageDetails() const { return louds_dense_->getMemoryUsageDetails(); }
 
 level_t FST::getHeight() const { return louds_sparse_->getHeight(); }
 

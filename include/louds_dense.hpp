@@ -7,6 +7,10 @@
 #include "fst_builder.hpp"
 #include "rank.hpp"
 
+#ifdef value_compression
+#include <sdsl/int_vector.hpp>
+#endif
+
 namespace fst {
 
 class LoudsDense {
@@ -145,6 +149,10 @@ class LoudsDense {
 
   uint64_t getMemoryUsage() const;
 
+  uint64_t getMemoryUsageValues() const;
+
+  std::string getMemoryUsageDetails() const;
+
   void serialize(char *&dst) const {
     memcpy(dst, &height_, sizeof(height_));
     dst += sizeof(height_);
@@ -180,7 +188,11 @@ class LoudsDense {
   static const position_t kNodeFanout = 256;
   static const position_t kRankBasicBlockSize = 512;
 
+#ifndef value_compression
   std::vector<uint64_t> positions_dense_;
+#else
+  sdsl::int_vector<> positions_dense_;
+#endif
 
   level_t height_{};
 
@@ -435,7 +447,24 @@ uint64_t LoudsDense::serializedSize() const {
 
 uint64_t LoudsDense::getMemoryUsage() const {
   return (sizeof(LoudsDense) + label_bitmaps_->size() + child_indicator_bitmaps_->size() +
-          prefixkey_indicator_bits_->size() + positions_dense_.size() * 8);
+          prefixkey_indicator_bits_->size() + getMemoryUsageValues());
+}
+
+uint64_t LoudsDense::getMemoryUsageValues() const {
+#ifndef value_compression
+  return positions_dense_.size() * 8;
+#else
+  return sdsl::size_in_bytes(positions_dense_);
+#endif
+}
+
+std::string LoudsDense::getMemoryUsageDetails() const {
+  std::string result = "";
+  result += "label bitmaps," + std::to_string(label_bitmaps_->size()) + "\n";
+  result += "child indicator bitmaps," + std::to_string(child_indicator_bitmaps_->size()) + "\n";
+  result += "prefix indicator bitmaps," + std::to_string(prefixkey_indicator_bits_->size()) + "\n";
+  result += "values," + std::to_string(getMemoryUsageValues()) + "\n";
+  return result;
 }
 
 position_t LoudsDense::getChildNodeNum(const position_t pos) const { return child_indicator_bitmaps_->rank(pos); }
