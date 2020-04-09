@@ -263,20 +263,25 @@ inline bool LoudsDense::lookupKeyAtNode(const char *key, uint64_t key_length, le
   position_t pos = 0;
   for (; level < height_; level++) {
     pos = (node_num * kNodeFanout);
+
     if (level >= key_length) {  // if run out of searchKey bytes
-      // std::cout << "[dense] run out of search bytes!" << std::endl;
       return false;
     }
+
     pos += (label_t)key[level];
 
+    // prefetch both label_bitmaps and child_inidcator_bitmaps even if we do not get that far
+    label_bitmaps_->prefetch(pos);
+    child_indicator_bitmaps_->prefetch(pos);
+
     if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
-      // std::cout << "[dense] key byte does not exists!" << std::endl;
       return false;
     }
 
     if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
-      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) -
-                             1;  // + prefix but we do not support this so far
+      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
+      // + prefix but we do not support this so far
+
       value = positions_dense_[value_index];
 
       // the following check must be performed by the caller
