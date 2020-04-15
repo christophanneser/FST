@@ -24,6 +24,8 @@ class Bitvector {
 
   ~Bitvector() = default;
 
+  word_t getWord(position_t word_index) const { return bits_[word_index]; }
+
   position_t numBits() const { return num_bits_; }
 
   position_t numWords() const {
