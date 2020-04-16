@@ -81,6 +81,16 @@ class InterleavedBitvectorRank {
     position_t offset = pos & (basic_block_size_ - 1);
     return (rank_lut_[block_id + 1] + popcountLinearInterleavedOdds(bits_, block_id * word_per_basic_block, offset + 1));
   }
+
+  position_t rankCombined(position_t pos) const {
+    assert(pos < num_bits_);
+    position_t word_per_basic_block = basic_block_size_ / kWordSize;
+    position_t block_id = (pos / basic_block_size_) << 1;  // as we store it interleaved
+    position_t offset = pos & (basic_block_size_ - 1);
+    position_t rank_result = rank_lut_[block_id] - rank_lut_[block_id + 1];
+    return (rank_result + popcountLinearInterleavedCombined(bits_, block_id * word_per_basic_block, offset + 1));
+  }
+
   position_t rankLutSize() const { return ((num_bits_ / basic_block_size_ + 1) * sizeof(position_t)); }
 
   position_t serializedSize() const {

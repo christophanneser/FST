@@ -240,13 +240,12 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num, uin
 
     // child_indicator_bitmaps_->prefetch(pos);
 
-    if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
+    if (!interleaved_bitmaps_->readLabelBit(pos)) {  // if key byte does not exist
       return false;
     }
 
-    if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
-      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) -
-                             1;  // + prefix but we do not support this so far
+    if (!interleaved_bitmaps_->readChildBit(pos)) {  // if trie branch terminates
+      uint64_t value_index = interleaved_bitmaps_->rankCombined(pos) - 1;
       offset = positions_dense_[value_index];
 
       // the following check must be performed by the caller

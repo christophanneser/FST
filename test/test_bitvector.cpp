@@ -81,6 +81,23 @@ TEST_F(BitvectorTest, RankTest) {
 
   std::cout << "InterleavedBitvectorRank works for labels" << std::endl;
 }
+
+TEST_F(BitvectorTest, InterleavedRankTest) {
+  BitvectorRank labels_b(BASIC_BLOCK_SIZE, labels, num_bits_per_level);
+  BitvectorRank children_b(BASIC_BLOCK_SIZE, child, num_bits_per_level);
+
+  // create InterleavedBitvectorRank
+  InterleavedBitvectorRank labels_and_children_b(BASIC_BLOCK_SIZE, &labels_b, &children_b);
+
+  std::cout << "start comparisons" << std::endl;
+    labels_and_children_b.print();
+  for (int i = 0; i < TEST_SIZE * 64; i++) {
+    position_t rankResult = labels_b.rank(i) - children_b.rank(i);
+    ASSERT_EQ(rankResult, labels_and_children_b.rankCombined(i));
+  }
+
+  std::cout << "InterleavedBitvectorRank works for labels" << std::endl;
+}
 }  // namespace surftest
 }  // namespace fst
 
