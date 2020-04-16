@@ -145,14 +145,12 @@ inline uint64_t popcountLinearInterleavedCombined(uint64_t *bits, uint64_t x, ui
   __builtin_prefetch(bits + x + 7, 0);      // huanchen
   for (uint64_t i = 0; i < lastword; i++) { /* tested;  manually unrolling doesn't help, at least in C */
     __builtin_prefetch(bits + x + (i << 1) + 3, 0);
-    p += popcount(bits[x + (i << 1)]);  // add label bits
-    p -= popcount(bits[x + (i << 1) + 1]);  // subtract child bits
+    p += popcount(bits[x + (i << 1)] ^ bits[x + (i << 1) + 1]);  // get continuing label bits
   }
 
   uint64_t lastshifted_label = bits[x + (lastword << 1)] >> (63 - ((nbits - 1) & popcountmask));
   uint64_t lastshifted_child = bits[x + (lastword << 1) + 1] >> (63 - ((nbits - 1) & popcountmask));
-  p += popcount(lastshifted_label);
-  p -= popcount(lastshifted_child);
+  p += popcount(lastshifted_label ^ lastshifted_child);
   return p;
 }
 
