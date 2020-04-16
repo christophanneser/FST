@@ -271,12 +271,12 @@ inline bool LoudsDense::lookupKeyAtNode(const char *key, uint64_t key_length, le
 
     pos += (label_t)key[level];
 
-    if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
+    if (!interleaved_bitmaps_->readLabelBit(pos)) {  // if key byte does not exist
       return false;
     }
 
-    if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
-      uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
+    if (!interleaved_bitmaps_->readChildBit(pos)) {  // if trie branch terminates
+      uint64_t value_index = interleaved_bitmaps_->rankCombined(pos) - 1;
       value = positions_dense_[value_index];
 
       node_num = 0;
@@ -465,7 +465,7 @@ std::string LoudsDense::getMemoryUsageDetails() const {
   return result;
 }
 
-position_t LoudsDense::getChildNodeNum(const position_t pos) const { return child_indicator_bitmaps_->rank(pos); }
+position_t LoudsDense::getChildNodeNum(const position_t pos) const { return interleaved_bitmaps_->rankChild(pos); }
 
 position_t LoudsDense::getSuffixPos(const position_t pos, const bool is_prefix_key) const {
   position_t node_num = pos / kNodeFanout;
