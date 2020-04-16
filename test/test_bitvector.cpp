@@ -52,7 +52,7 @@ TEST_F(BitvectorTest, ReadBitTest) {
   BitvectorRank children_b(BASIC_BLOCK_SIZE, child, num_bits_per_level);
 
   // create InterleavedBitvectorRank
-  InterleavedBitvectorRank labels_and_children_b(BASIC_BLOCK_SIZE, labels_b, children_b);
+  InterleavedBitvectorRank labels_and_children_b(BASIC_BLOCK_SIZE, &labels_b, &children_b);
 
   std::cout << "start comparisons" << std::endl;
   for (int i = 0; i < TEST_SIZE * 64; i++) {
@@ -70,7 +70,7 @@ TEST_F(BitvectorTest, RankTest) {
   BitvectorRank children_b(BASIC_BLOCK_SIZE, child, num_bits_per_level);
 
   // create InterleavedBitvectorRank
-  InterleavedBitvectorRank labels_and_children_b(BASIC_BLOCK_SIZE, labels_b, children_b);
+  InterleavedBitvectorRank labels_and_children_b(BASIC_BLOCK_SIZE, &labels_b, &children_b);
 
   std::cout << "start comparisons" << std::endl;
     labels_and_children_b.print();

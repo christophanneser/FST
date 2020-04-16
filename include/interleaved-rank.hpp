@@ -16,8 +16,8 @@ class InterleavedBitvectorRank {
  public:
   InterleavedBitvectorRank() : basic_block_size_(0), rank_lut_(nullptr){};
 
-  InterleavedBitvectorRank(const position_t basic_block_size, const BitvectorRank &labels,
-                           const BitvectorRank &children, const level_t start_level = 0,
+  InterleavedBitvectorRank(const position_t basic_block_size, const BitvectorRank *labels,
+                           const BitvectorRank *children, const level_t start_level = 0,
                            const level_t end_level = 0 /* non-inclusive */) {
     basic_block_size_ = basic_block_size;
     initBitmaps(labels, children);
@@ -133,25 +133,25 @@ class InterleavedBitvectorRank {
   // in bytes
   position_t bitsSize() const { return (numWords() * (kWordSize / 8)); }
 
-  void initBitmaps(const BitvectorRank &labels, const BitvectorRank &child) {
-    assert(labels.numWords() == child.numWords());
-    bits_ = new word_t[labels.numWords() << 1];
-    num_bits_ = labels.numBits() << 1;
+  void initBitmaps(const BitvectorRank *labels, const BitvectorRank *child) {
+    assert(labels->numWords() == child->numWords());
+    bits_ = new word_t[labels->numWords() << 1];
+    num_bits_ = labels->numBits() << 1;
     // TODO store 8 consecutive 64 bit integers
     // store bits of labels and child bitmaps interleaved
-    for (uint64_t i = 0; i < labels.numWords(); i++) {
-      bits_[i << 1] = labels.getWord(i);
-      bits_[(i << 1) + 1] = child.getWord(i);
+    for (uint64_t i = 0; i < labels->numWords(); i++) {
+      bits_[i << 1] = labels->getWord(i);
+      bits_[(i << 1) + 1] = child->getWord(i);
     }
   }
 
-  void initRankLut(const BitvectorRank &labels, const BitvectorRank &child) {
+  void initRankLut(const BitvectorRank *labels, const BitvectorRank *child) {
     position_t num_blocks = num_bits_ / basic_block_size_ + 1;  // works as we set num_bits_ before call this function
     rank_lut_ = new position_t[num_blocks];
 
     for (position_t i = 0; i < num_blocks / 2; i++) {
-      rank_lut_[i << 1] = labels.getRankLUT()[i];
-      rank_lut_[(i << 1) + 1] = child.getRankLUT()[i];
+      rank_lut_[i << 1] = labels->getRankLUT()[i];
+      rank_lut_[(i << 1) + 1] = child->getRankLUT()[i];
     }
   }
 

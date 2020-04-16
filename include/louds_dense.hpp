@@ -6,6 +6,7 @@
 #include "config.hpp"
 #include "fst_builder.hpp"
 #include "rank.hpp"
+#include "interleaved-rank.hpp"
 
 #ifdef value_compression
 #include <sdsl/int_vector.hpp>
@@ -186,7 +187,7 @@ class LoudsDense {
 
  private:
   static const position_t kNodeFanout = 256;
-  static const position_t kRankBasicBlockSize = 512;
+  static const position_t kRankBasicBlockSize = 256;// TODO 512;
 
 #ifndef value_compression
   std::vector<uint64_t> positions_dense_;
@@ -198,6 +199,7 @@ class LoudsDense {
 
   std::unique_ptr<BitvectorRank> label_bitmaps_;
   std::unique_ptr<BitvectorRank> child_indicator_bitmaps_;
+  std::unique_ptr<InterleavedBitvectorRank> interleaved_bitmaps_;
   std::unique_ptr<BitvectorRank> prefixkey_indicator_bits_;
   // const pointer to the original keys
   const std::vector<std::string> *keys_{};
@@ -219,7 +221,7 @@ LoudsDense::LoudsDense(FSTBuilder *builder, const std::vector<std::string> &keys
       kRankBasicBlockSize, builder->getBitmapChildIndicatorBits(), num_bits_per_level, 0, height_);
   prefixkey_indicator_bits_ = std::make_unique<BitvectorRank>(kRankBasicBlockSize, builder->getPrefixkeyIndicatorBits(),
                                                               builder->getNodeCounts(), 0, height_);
-
+  interleaved_bitmaps_ = std::make_unique<InterleavedBitvectorRank>(kRankBasicBlockSize, label_bitmaps_.get(), child_indicator_bitmaps_.get());
   // todo make more efficient by completely moving this vector
   positions_dense_ = builder->getDenseOffsets();
 }
@@ -270,22 +272,14 @@ inline bool LoudsDense::lookupKeyAtNode(const char *key, uint64_t key_length, le
 
     pos += (label_t)key[level];
 
-    // prefetch both label_bitmaps and child_inidcator_bitmaps even if we do not get that far
-    label_bitmaps_->prefetch(pos);
-    child_indicator_bitmaps_->prefetch(pos);
-
     if (!label_bitmaps_->readBit(pos)) {  // if key byte does not exist
       return false;
     }
 
     if (!child_indicator_bitmaps_->readBit(pos)) {  // if trie branch terminates
       uint64_t value_index = label_bitmaps_->rank(pos) - child_indicator_bitmaps_->rank(pos) - 1;
-      // + prefix but we do not support this so far
-
       value = positions_dense_[value_index];
 
-      // the following check must be performed by the caller
-      // return (*keys_)[value] == key;
       node_num = 0;
       return true;
     }
