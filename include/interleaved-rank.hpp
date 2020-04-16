@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include <bitset>
 
 #include "popcount.h"
 #include "rank.hpp"
@@ -20,12 +21,31 @@ class InterleavedBitvectorRank {
                            const level_t end_level = 0 /* non-inclusive */) {
     basic_block_size_ = basic_block_size;
     initBitmaps(labels, children);
-    // TODO later initRankLut();
+    initRankLut(labels, children);
   }
 
   ~InterleavedBitvectorRank() {
     delete[] bits_;
     delete[] rank_lut_;
+  }
+
+  void print_bitset(std::bitset<64> b) {
+    for (int i = 0; i < b.size(); i++) {
+      std::cout << b[i];
+      if (i % 8 == 0 && i > 0) std::cout << " ";
+    }
+  }
+
+  void print() {
+    std::cout << "InterleavedBitvectorRank:" << std::endl;
+    for (int i = 0; i < 8; i++) {
+      std::bitset<64> b(bits_[i]);
+      print_bitset(b);
+      std::cout << " " << (i % 2 == 0 ? "<-- Labels" : "<-- Children") << std::endl;
+    }
+    for (int i = 0; i < 4; i++) {
+      std::cout << rank_lut_[i] << (i % 2 == 0 ? "<-- Labels" : "<-- Children") << std::endl;
+    }
   }
 
   bool readLabelBit(const position_t pos) const {
@@ -42,18 +62,25 @@ class InterleavedBitvectorRank {
     return bits_[word_id] & (kMsbMask >> offset);
   }
 
-
   // Counts the number of 1's in the bitvector up to position pos.
   // pos is zero-based; count is one-based.
   // E.g., for bitvector: 100101000, rank(3) = 2
-  position_t rank(position_t pos) const {
+  // TODO test both rank methods extensively
+  position_t rankLabel(position_t pos) const {
     assert(pos < num_bits_);
     position_t word_per_basic_block = basic_block_size_ / kWordSize;
-    position_t block_id = pos / basic_block_size_;
+    position_t block_id = (pos / basic_block_size_) << 1;  // as we store it interleaved
     position_t offset = pos & (basic_block_size_ - 1);
-    return (rank_lut_[block_id] + popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
+    return (rank_lut_[block_id] + popcountLinearInterleaved(bits_, block_id * word_per_basic_block, offset + 1));
   }
 
+  position_t rankChild(position_t pos) const {
+    assert(pos < num_bits_);
+    position_t word_per_basic_block = basic_block_size_ / kWordSize;
+    position_t block_id = ((pos / basic_block_size_) << 1);
+    position_t offset = pos & (basic_block_size_ - 1);
+    return (rank_lut_[block_id + 1] + popcountLinearInterleavedOdds(bits_, block_id * word_per_basic_block, offset + 1));
+  }
   position_t rankLutSize() const { return ((num_bits_ / basic_block_size_ + 1) * sizeof(position_t)); }
 
   position_t serializedSize() const {
@@ -110,7 +137,7 @@ class InterleavedBitvectorRank {
     assert(labels.numWords() == child.numWords());
     bits_ = new word_t[labels.numWords() << 1];
     num_bits_ = labels.numBits() << 1;
-
+    // TODO store 8 consecutive 64 bit integers
     // store bits of labels and child bitmaps interleaved
     for (uint64_t i = 0; i < labels.numWords(); i++) {
       bits_[i << 1] = labels.getWord(i);
@@ -118,17 +145,14 @@ class InterleavedBitvectorRank {
     }
   }
 
-  void initRankLut() {
-    position_t word_per_basic_block = basic_block_size_ / kWordSize;
-    position_t num_blocks = num_bits_ / basic_block_size_ + 1;
+  void initRankLut(const BitvectorRank &labels, const BitvectorRank &child) {
+    position_t num_blocks = num_bits_ / basic_block_size_ + 1;  // works as we set num_bits_ before call this function
     rank_lut_ = new position_t[num_blocks];
 
-    position_t cumu_rank = 0;
-    for (position_t i = 0; i < num_blocks - 1; i++) {
-      rank_lut_[i] = cumu_rank;
-      cumu_rank += popcountLinear(bits_, i * word_per_basic_block, basic_block_size_);
+    for (position_t i = 0; i < num_blocks / 2; i++) {
+      rank_lut_[i << 1] = labels.getRankLUT()[i];
+      rank_lut_[(i << 1) + 1] = child.getRankLUT()[i];
     }
-    rank_lut_[num_blocks - 1] = cumu_rank;
   }
 
   position_t num_bits_;

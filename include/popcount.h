@@ -92,6 +92,49 @@ inline uint64_t popcountLinear(uint64_t *bits, uint64_t x, uint64_t nbits) {
   return p;
 }
 
+inline uint64_t popcountLinearInterleaved(uint64_t *bits, uint64_t x, uint64_t nbits) {
+  if (nbits == 0) {
+    return 0;
+  }
+  uint64_t lastword = (nbits - 1) / popcountsize;
+  uint64_t p = 0;
+
+  __builtin_prefetch(bits + x + 7, 0);      // huanchen
+  for (uint64_t i = 0; i < lastword; i++) { /* tested;  manually unrolling doesn't help, at least in C */
+    __builtin_prefetch(bits + x + (i << 1) + 3, 0);
+    p += popcount(bits[x + (i << 1)]);  // note that use binds us to 64 bit popcount impls
+  }
+
+  // 'nbits' may or may not fall on a multiple of 64 boundary,
+  // so we may need to zero out the right side of the last word
+  // (accomplished by shifting it right, since we're just popcounting)
+  uint64_t lastshifted = bits[x + (lastword << 1)] >> (63 - ((nbits - 1) & popcountmask));
+  p += popcount(lastshifted);
+  return p;
+}
+
+// TODO test this extensively as it may be not completely free of errors -> used for child bitmap
+inline uint64_t popcountLinearInterleavedOdds(uint64_t *bits, uint64_t x, uint64_t nbits) {
+  if (nbits == 0) {
+    return 0;
+  }
+  uint64_t lastword = (nbits - 1) / popcountsize;
+  uint64_t p = 0;
+
+  __builtin_prefetch(bits + x + 7, 0);      // huanchen
+  for (uint64_t i = 0; i < lastword; i++) { /* tested;  manually unrolling doesn't help, at least in C */
+    __builtin_prefetch(bits + x + (i << 1) + 3, 0);
+    p += popcount(bits[x + (i << 1) + 1]);  // note that use binds us to 64 bit popcount impls
+  }
+
+  // 'nbits' may or may not fall on a multiple of 64 boundary,
+  // so we may need to zero out the right side of the last word
+  // (accomplished by shifting it right, since we're just popcounting)
+  uint64_t lastshifted = bits[x + (lastword << 1) + 1] >> (63 - ((nbits - 1) & popcountmask));
+  p += popcount(lastshifted);
+  return p;
+}
+
 // Return the index of the kth bit set in x
 inline int select64_naive(uint64_t x, int k) {
   int count = -1;

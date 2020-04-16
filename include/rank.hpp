@@ -39,6 +39,8 @@ class BitvectorRank : public Bitvector {
     return (rank_lut_[block_id] + popcountLinear(bits_, block_id * word_per_basic_block, offset + 1));
   }
 
+  position_t *getRankLUT() const { return rank_lut_; }
+
   position_t rankLutSize() const { return ((num_bits_ / basic_block_size_ + 1) * sizeof(position_t)); }
 
   position_t serializedSize() const {
