@@ -15,7 +15,7 @@ namespace fst {
 namespace surftest {
 
 static const level_t kSuffixLen = 8;
-static const uint32_t number_keys = 2500000;
+static const uint32_t number_keys = 250000;
 static const uint32_t kIntTestSkip = 9;
 
 class SuRFInt32Test : public ::testing::Test {
@@ -212,7 +212,7 @@ TEST_F (SuRFInt32Test, IteratorTestsRangeLookupRightBoundaryTest) {
 }
 
 TEST_F (SuRFInt32Test, IteratorTestsRangeLookupLeftBoundaryTest) {
-  FST *surf = new FST(keys_int32, values_uint64, kIncludeDense, 128);
+  std::unique_ptr<FST> surf = std::make_unique<FST>(keys_int32, values_uint64, kIncludeDense, 128);
   size_t start_position = 0;
   size_t end_position = 10;
   auto iterators = surf->lookupRange(uint32ToString(0),
