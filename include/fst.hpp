@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <vector>
 
+
+#include "benchmark_result.hpp"
 #include "config.hpp"
 #include "fst_builder.hpp"
 #include "louds_dense.hpp"
@@ -109,7 +111,7 @@ class FST {
 
   // this function is used by hybrid trie to continue a search started in ARTHybrid
   inline bool lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t node_number,
-                              uint64_t &value) const;
+                              uint64_t &value, NodeAccessResults &nar) const;
 
   // this function is used by hybrid trie to execute one lookup step in AMAC setting
   // returns true if next nodenumber is found or lookup finished
@@ -224,18 +226,18 @@ uint64_t FST::lookupNodeNum(const char *key, uint64_t key_length) const {
 };
 
 inline bool FST::lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t node_number,
-                                 uint64_t &value) const {
+                                 uint64_t &value, NodeAccessResults &nar) const {
   if (level < getSparseStartLevel()) {  // start lookup in LoudsDense
-    if (!louds_dense_->lookupKeyAtNode(key, key_length, level, node_number, value)) {
+    if (!louds_dense_->lookupKeyAtNode(key, key_length, level, node_number, value, nar)) {
       return false;  // key not immanent in LoudsDense
     } else if (node_number != 0) {
       // continue lookup in LoudsSparse at sparse startlevel
-      return louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, getSparseStartLevel());
+      return louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, getSparseStartLevel(), nar);
     }
     return true;
   }
   // start lookup in LoudsSparse at level and nodenumber
-  return louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level);
+  return louds_sparse_->lookupKeyAtNode(key, key_length, node_number, value, level, nar);
 }
 
 // store result in node_number when it gets found

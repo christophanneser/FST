@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "benchmark_result.hpp"
 #include "config.hpp"
 #include "fst_builder.hpp"
 #include "rank.hpp"
@@ -135,7 +136,7 @@ class LoudsDense {
   // values vectors
   void getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::vector<uint64_t> &values);
 
-  bool lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t &node_number, uint64_t &value) const;
+  bool lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t &node_number, uint64_t &value, NodeAccessResults &nar) const;
 
   bool lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const;
 
@@ -260,9 +261,10 @@ bool LoudsDense::lookupKey(const std::string &key, position_t &out_node_num, uin
 }
 
 inline bool LoudsDense::lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t &node_num,
-                                        uint64_t &value) const {
+                                        uint64_t &value, NodeAccessResults &nar) const {
   position_t pos = 0;
   for (; level < height_; level++) {
+    nar.increase_compressed(level);
     pos = (node_num * kNodeFanout);
 
     if (level >= key_length) {  // if run out of searchKey bytes

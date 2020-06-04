@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "benchmark_result.hpp"
 #include "config.hpp"
 #include "fst_builder.hpp"
 #include "label_vector.hpp"
@@ -105,7 +106,7 @@ class LoudsSparse {
   bool lookupKey(const std::string &key, position_t in_node_num, uint64_t &offset) const;
 
   bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num, uint64_t &offset,
-                       uint64_t level) const;
+                       uint64_t level, NodeAccessResults &nar) const;
 
   bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
 
@@ -260,10 +261,11 @@ bool LoudsSparse::lookupKey(const std::string &key, const position_t in_node_num
 }
 
 inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num, uint64_t &offset,
-                                         uint64_t level) const {
+                                         uint64_t level, NodeAccessResults &nar) const {
   position_t node_num = in_node_num;
   position_t pos = getFirstLabelPos(node_num);
   for (; level < key_length; level++) {
+    nar.increase_compressed(level);
     // child_indicator_bits_->prefetch(pos);
     if (!labels_->search((label_t)key[level], pos, nodeSize(pos))) return false;
 
