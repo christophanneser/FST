@@ -130,7 +130,7 @@ class FST {
   inline bool amacLookup(const char keyByte, level_t level, size_t &node_number) const;
 
   void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values,
-               std::vector<uint8_t> &prefix) const;
+               std::vector<uint8_t> &prefix, std::vector<uint64_t>& fst_node_numbers) const;
 
   uint64_t lookupNodeNum(const char *key, uint64_t key_length) const;
 
@@ -264,15 +264,17 @@ inline bool FST::amacLookup(const char keyByte, level_t level, size_t &node_numb
 /// It recursively goes down if a node has only one label and stores these
 /// in prefixLabels
 inline void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values,
-                         std::vector<uint8_t> &prefixLabels) const {
+                         std::vector<uint8_t> &prefixLabels, std::vector<uint64_t>& fst_node_numbers) const {
   while (level < getSparseStartLevel() &&
       !louds_dense_->nodeHasMultipleBranchesOrTerminates(node_number, level, prefixLabels)) {
+    fst_node_numbers.emplace_back(node_number);
     level++;
   }
   if (level < getSparseStartLevel()) {  // get node from louds_dense_
     louds_dense_->getNode(node_number, lables, values);
   } else {  // continue traversing in louds_sparse_ until node is found that is a leaf or that has at least two labels
     while (!louds_sparse_->nodeHasMultipleBranchesOrTerminates(node_number, level, prefixLabels)) {
+      fst_node_numbers.emplace_back(node_number);
       level++;
     }
     // get node from louds_sparse_
