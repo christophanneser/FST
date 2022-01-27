@@ -70,16 +70,15 @@ class FST {
   }
 
   FST(const std::vector<uint32_t> &offsets, const std::vector<uint64_t> &values, const uint8_t *data) {
-    std::vector<std::string> transformed_keys;
-    transformed_keys.reserve(offsets.size());
+    keys_.reserve(offsets.size());
 
     for (auto offset: offsets) {
       uint8_t key_length = data[offset];
       std::string key(reinterpret_cast<const char*>(data) + offset + 1, key_length);
-      transformed_keys.emplace_back(move(key));
+      keys_.emplace_back(move(key));
     }
 
-    create(transformed_keys, values, kIncludeDense, kSparseDenseRatio);
+    create(keys_, values, kIncludeDense, kSparseDenseRatio);
   }
 
   FST(const std::vector<uint64_t> &keys, const std::vector<uint64_t> &values) {
@@ -174,6 +173,7 @@ class FST {
   }
 
  private:
+  std::vector<std::string> keys_;
   std::unique_ptr<LoudsSparse> louds_sparse_;
   std::unique_ptr<FSTBuilder> builder_;
   std::unique_ptr<LoudsDense> louds_dense_;
