@@ -74,7 +74,7 @@ class FST {
 
     for (auto offset: offsets) {
       uint8_t key_length = data[offset];
-      std::string key(reinterpret_cast<const char*>(data) + offset + 1, key_length);
+      std::string key(reinterpret_cast<const char *>(data) + offset + 1, key_length);
       keys_.emplace_back(move(key));
     }
 
@@ -129,9 +129,13 @@ class FST {
   inline bool amacLookup(const char keyByte, level_t level, size_t &node_number) const;
 
   void getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values,
-               std::vector<uint8_t> &prefix, std::vector<uint64_t>& fst_node_numbers) const;
+               std::vector<uint8_t> &prefix, std::vector<uint64_t> &fst_node_numbers) const;
 
   uint64_t lookupNodeNum(const char *key, uint64_t key_length) const;
+
+  FST::Iter moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number) const;
+
+  FST::Iter moveToKeyStartingAtNode(level_t &level, size_t node_number, const std::string &key) const;
 
   // This function searches in a conservative way: if inclusive is true
   // and the stored key prefix matches key, iter stays at this key prefix.
@@ -264,7 +268,7 @@ inline bool FST::amacLookup(const char keyByte, level_t level, size_t &node_numb
 /// It recursively goes down if a node has only one label and stores these
 /// in prefixLabels
 inline void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t> &lables, std::vector<uint64_t> &values,
-                         std::vector<uint8_t> &prefixLabels, std::vector<uint64_t>& fst_node_numbers) const {
+                         std::vector<uint8_t> &prefixLabels, std::vector<uint64_t> &fst_node_numbers) const {
   while (level < getSparseStartLevel() &&
       !louds_dense_->nodeHasMultipleBranchesOrTerminates(node_number, level, prefixLabels)) {
     fst_node_numbers.emplace_back(node_number);
@@ -281,6 +285,54 @@ inline void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t>
     louds_sparse_->getNode(node_number, lables, values);
   }
 }
+
+FST::Iter FST::moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number) const {
+  FST::Iter iter(this);
+
+  if (level < getSparseStartLevel()) { // starting in dense part
+    // todo implement me
+    throw NotYetImplemented("move to leftmos key in dense + sparse iterator");
+  } else { // directly start in sparse levels
+    iter.dense_iter_.skip(); // skip the dense levels
+    iter.sparse_iter_.setStartNodeNum(node_number);
+    iter.sparse_iter_.moveToLeftMostKey();
+  }
+
+  return iter;
+};
+
+FST::Iter FST::moveToKeyStartingAtNode(level_t &level,
+                                       size_t node_number,
+                                       const std::string &key) const {
+  FST::Iter iter(this);
+
+  if (level < getSparseStartLevel()) { // starting in dense part
+    // handle dense levels
+    louds_dense_->moveToKeyGreaterThanStartingNodeNumber(node_number, level, key, true, iter.dense_iter_);
+    if (!iter.dense_iter_.isValid()) return iter;
+    if (iter.dense_iter_.isComplete()) return iter;
+    // handle sparse levels
+    if (!iter.dense_iter_.isSearchComplete()) {
+      iter.passToSparse();
+      louds_sparse_->moveToKeyGreaterThan(key, true, level, iter.sparse_iter_);
+      if (!iter.sparse_iter_.isValid()) iter.incrementDenseIter();
+      return iter;
+    } else if (!iter.dense_iter_.isMoveLeftComplete()) {
+      iter.passToSparse();
+      iter.sparse_iter_.moveToLeftMostKey();
+      return iter;
+    }
+  } else { // directly start in sparse levels
+    iter.dense_iter_.skip(); // skip the dense levels
+    iter.sparse_iter_.setStartNodeNum(node_number);
+    louds_sparse_->moveToKeyGreaterThan(key, true, level, iter.sparse_iter_);
+    if (!iter.sparse_iter_.isValid()) iter.incrementDenseIter();
+    return iter;
+  }
+
+  assert(false);  // shouldn't reach here
+  return iter;
+};
 
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key, const bool inclusive) const {
   FST::Iter iter(this);
@@ -416,7 +468,7 @@ std::string FST::Iter::getKey() const {
 void FST::Iter::passToSparse() { sparse_iter_.setStartNodeNum(dense_iter_.getSendOutNodeNum()); }
 
 bool FST::Iter::incrementDenseIter() {
-  if (!dense_iter_.isValid()) return false;
+  if (!dense_iter_.isValid() || dense_iter_.isSkipped()) return false;
 
   dense_iter_++;
   if (!dense_iter_.isValid()) return false;
@@ -476,14 +528,17 @@ bool FST::Iter::operator!=(const FST::Iter &other) {
     return true;
   }
 
-  if (this->dense_iter_.getLastIteratorPosition() != other.dense_iter_.getLastIteratorPosition()) {
-    return true;
-  }
+  // compare dense iterator only if both are not skipped
+  if (!this->dense_iter_.isSkipped() && !other.dense_iter_.isSkipped()) {
+    if (this->dense_iter_.getLastIteratorPosition() != other.dense_iter_.getLastIteratorPosition()) {
+      return true;
+    }
 
-  // dense iterators are equal and both of them are complete -> search not
-  // continued in sparse levels
-  if (this->dense_iter_.isComplete() && other.dense_iter_.isComplete()) {
-    return false;
+    // dense iterators are equal and both of them are complete -> search not
+    // continued in sparse levels
+    if (this->dense_iter_.isComplete() && other.dense_iter_.isComplete()) {
+      return false;
+    }
   }
 
   // dense is equal, check sparse levels now
