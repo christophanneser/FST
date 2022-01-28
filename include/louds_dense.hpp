@@ -573,8 +573,20 @@ position_t LoudsDense::getPrevPos(const position_t pos,
 
 void LoudsDense::Iter::clear() {
   is_valid_ = false;
+  is_search_complete_ = false;
+  is_move_left_complete_ = false;
+  is_move_right_complete_ = false;
+  send_out_node_num_ = 0;
   key_len_ = 0;
   is_at_prefix_key_ = false;
+  is_skipped_ = false;
+  skipped_ht_levels_ = 0;
+
+  std::fill(key_.begin(), key_.end(), 0);
+  std::fill(pos_in_trie_.begin(), pos_in_trie_.end(), 0);
+  std::fill(value_pos_.begin(), value_pos_.end(), 0);
+  std::fill(value_pos_initialized_.begin(), value_pos_initialized_.end(), false);
+
 }
 
 int LoudsDense::Iter::compare(const std::string &key) const {

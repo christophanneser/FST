@@ -564,7 +564,15 @@ bool LoudsSparse::compareSuffixGreaterThan(const position_t pos,
 void LoudsSparse::Iter::clear() {
   is_valid_ = false;
   key_len_ = 0;
+  start_node_num_ = 0;
+  key_len_ = 0;
   is_at_terminator_ = false;
+  start_level_ = trie_->getStartLevel();
+
+  std::fill(key_.begin(), key_.end(), 0);
+  std::fill(pos_in_trie_.begin(), pos_in_trie_.end(), 0);
+  std::fill(value_pos_.begin(), value_pos_.end(), 0);
+  std::fill(value_pos_initialized_.begin(), value_pos_initialized_.end(), false);
 }
 
 int LoudsSparse::Iter::compare(const std::string &key) const {

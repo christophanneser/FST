@@ -133,7 +133,7 @@ class FST {
 
   uint64_t lookupNodeNum(const char *key, uint64_t key_length) const;
 
-  FST::Iter moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number) const;
+  void moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number, FST::Iter& iter) const;
 
   FST::Iter moveToKeyStartingAtNode(level_t &level, size_t node_number, const std::string &key) const;
 
@@ -286,15 +286,14 @@ inline void FST::getNode(level_t level, size_t node_number, std::vector<uint8_t>
   }
 }
 
-FST::Iter FST::moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number) const {
-  FST::Iter iter(this);
+void FST::moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number, FST::Iter& iter) const {
 
   if (level < getSparseStartLevel()) { // starting in dense part
     iter.dense_iter_.setToFirstLabelInNode(node_number, level);
     iter.dense_iter_.moveToLeftMostKey();
 
     assert (iter.dense_iter_.isValid());
-    if (iter.dense_iter_.isComplete()) return iter;
+    if (iter.dense_iter_.isComplete()) return;
 
     // todo what does isSearchComplete mean here for dense iterator?
 
@@ -302,15 +301,13 @@ FST::Iter FST::moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number
     if (!iter.dense_iter_.isMoveLeftComplete()) {
       iter.passToSparse();
       iter.sparse_iter_.moveToLeftMostKey();
-      return iter;
+      return;
     }
   } else { // directly start in sparse levels
     iter.dense_iter_.skip(); // skip the dense levels
     iter.sparse_iter_.setStartNodeNum(node_number);
     iter.sparse_iter_.moveToLeftMostKey();
   }
-
-  return iter;
 };
 
 FST::Iter FST::moveToKeyStartingAtNode(level_t &level,
@@ -320,7 +317,6 @@ FST::Iter FST::moveToKeyStartingAtNode(level_t &level,
 
   if (level < getSparseStartLevel()) { // starting in dense part
     // handle dense levels
-//    louds_dense_->
     louds_dense_->moveToKeyGreaterThanStartingNodeNumber(node_number, level, key, true, iter.dense_iter_);
     if (!iter.dense_iter_.isValid()) return iter;
     if (iter.dense_iter_.isComplete()) return iter;
@@ -342,9 +338,7 @@ FST::Iter FST::moveToKeyStartingAtNode(level_t &level,
     if (!iter.sparse_iter_.isValid()) iter.incrementDenseIter();
     return iter;
   }
-
-  assert(false);  // shouldn't reach here
-  return iter;
+  throw;  // shouldn't reach here
 };
 
 FST::Iter FST::moveToKeyGreaterThan(const std::string &key, const bool inclusive) const {
