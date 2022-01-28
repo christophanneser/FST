@@ -290,8 +290,20 @@ FST::Iter FST::moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number
   FST::Iter iter(this);
 
   if (level < getSparseStartLevel()) { // starting in dense part
-    // todo implement me
-    throw NotYetImplemented("move to leftmos key in dense + sparse iterator");
+    iter.dense_iter_.setToFirstLabelInNode(node_number, level);
+    iter.dense_iter_.moveToLeftMostKey();
+
+    assert (iter.dense_iter_.isValid());
+    if (iter.dense_iter_.isComplete()) return iter;
+
+    // todo what does isSearchComplete mean here for dense iterator?
+
+    // hand over to sparse iterator
+    if (!iter.dense_iter_.isMoveLeftComplete()) {
+      iter.passToSparse();
+      iter.sparse_iter_.moveToLeftMostKey();
+      return iter;
+    }
   } else { // directly start in sparse levels
     iter.dense_iter_.skip(); // skip the dense levels
     iter.sparse_iter_.setStartNodeNum(node_number);
@@ -308,6 +320,7 @@ FST::Iter FST::moveToKeyStartingAtNode(level_t &level,
 
   if (level < getSparseStartLevel()) { // starting in dense part
     // handle dense levels
+//    louds_dense_->
     louds_dense_->moveToKeyGreaterThanStartingNodeNumber(node_number, level, key, true, iter.dense_iter_);
     if (!iter.dense_iter_.isValid()) return iter;
     if (iter.dense_iter_.isComplete()) return iter;

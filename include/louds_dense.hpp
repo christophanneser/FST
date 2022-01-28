@@ -21,7 +21,8 @@ class LoudsDense {
           send_out_node_num_(0),
           key_len_(0),
           is_at_prefix_key_(false),
-          is_skipped_(false) {
+          is_skipped_(false),
+          skipped_ht_levels_(0) {
       trie_ = nullptr;
     };
 
@@ -34,7 +35,8 @@ class LoudsDense {
           send_out_node_num_(0),
           key_len_(0),
           is_at_prefix_key_(false),
-          is_skipped_(false) {
+          is_skipped_(false),
+          skipped_ht_levels_(0) {
       for (level_t level = 0; level < trie_->getHeight(); level++) {
         key_.push_back(0);
         pos_in_trie_.push_back(0);
@@ -68,6 +70,8 @@ class LoudsDense {
     std::string getKey() const;
 
     position_t getSendOutNodeNum() const { return send_out_node_num_; };
+
+    void setToFirstLabelInNode(size_t node_number, level_t skipped_ht_levels);
 
     void setToFirstLabelInRoot();
 
@@ -113,6 +117,7 @@ class LoudsDense {
     LoudsDense *trie_;
     position_t send_out_node_num_;
     level_t key_len_;  // Does NOT include suffix
+    level_t skipped_ht_levels_;
 
     std::vector<label_t> key_;
     std::vector<position_t> pos_in_trie_;
@@ -411,6 +416,7 @@ void LoudsDense::moveToKeyGreaterThanStartingNodeNumber(position_t node_num,
                                                         const std::string &searched_key,
                                                         bool inclusive,
                                                         LoudsDense::Iter &iter) const {
+  iter.skipped_ht_levels_ = level;
   position_t pos;
   for (; level < height_; level++) {
     // if is_at_prefix_key_, pos is at the next valid position in the child node
@@ -610,6 +616,20 @@ void LoudsDense::Iter::setFlags(const bool is_valid,
   is_move_right_complete_ = is_move_right_complete;
 }
 
+// skipped_ht_levels stores the level of the current node number
+void LoudsDense::Iter::setToFirstLabelInNode(size_t node_number, level_t skipped_ht_levels) {
+  skipped_ht_levels_ = skipped_ht_levels;
+  position_t pos = node_number * kNodeFanout; // at first position in dense node
+  if (trie_->label_bitmaps_->readBit(pos)) {
+    pos_in_trie_[0] = pos;
+    key_[0] = (label_t) (pos % kNodeFanout);
+  } else {
+    pos_in_trie_[0] = trie_->getNextPos(pos);
+    key_[0] = (label_t) (pos_in_trie_[0] % kNodeFanout);
+  }
+  key_len_++;
+};
+
 void LoudsDense::Iter::setToFirstLabelInRoot() {
   if (trie_->label_bitmaps_->readBit(0)) {
     pos_in_trie_[0] = 0;
@@ -632,13 +652,13 @@ void LoudsDense::Iter::moveToLeftMostKey() {
   assert(key_len_ > 0);
   level_t level = key_len_ - 1;
   position_t pos = pos_in_trie_[level];
-  if (!trie_->child_indicator_bitmaps_->readBit(pos)) {
+  if (!trie_->child_indicator_bitmaps_->readBit(pos)) { // found leaf node, no subtree
     rankValuePosition(pos);
     // valid, search complete, moveLeft complete, moveRight complete
     return setFlags(true, true, true, true);
   }
 
-  while (level < trie_->getHeight() - 1) {
+  while (level < trie_->getHeight() - 1 - skipped_ht_levels_) {
     position_t node_num = trie_->getChildNodeNum(pos);
     // if the current prefix is also a key
     if (trie_->prefixkey_indicator_bits_->readBit(node_num)) {
