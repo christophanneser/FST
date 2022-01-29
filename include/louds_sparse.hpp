@@ -30,12 +30,11 @@ class LoudsSparse {
           key_len_(0),
           is_at_terminator_(false) {
       start_level_ = trie_->getStartLevel();
-      for (level_t level = start_level_; level < trie_->getHeight(); level++) {
-        key_.push_back(0);
-        pos_in_trie_.push_back(0);
-        value_pos_.push_back(0);
-        value_pos_initialized_.push_back(false);
-      }
+      const auto height = trie_->getHeight() - start_level_;
+      key_.resize(height, 0);
+      pos_in_trie_.resize(height, 0);
+      value_pos_.resize(height, 0);
+      value_pos_initialized_.resize(height, false);
     }
 
     void clear();

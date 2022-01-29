@@ -37,12 +37,12 @@ class LoudsDense {
           is_at_prefix_key_(false),
           is_skipped_(false),
           skipped_ht_levels_(0) {
-      for (level_t level = 0; level < trie_->getHeight(); level++) {
-        key_.push_back(0);
-        pos_in_trie_.push_back(0);
-        value_pos_.push_back(0);
-        value_pos_initialized_.push_back(false);
-      }
+
+        const auto height = trie_->getHeight();
+        key_.resize(height, 0);
+        pos_in_trie_.resize(height, 0);
+        value_pos_.resize(height, 0);
+        value_pos_initialized_.resize(height, false);
     }
 
     void clear();
