@@ -103,10 +103,10 @@ class LoudsSparse {
   // point query: trie walk starts at node "in_node_num" instead of root
   // in_node_num is provided by louds-dense's lookupKey function
   bool lookupKey(const std::string &key, position_t in_node_num,
-                 uint64_t &offset) const;
+                 uint64_t &value) const;
 
   bool lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
-                       uint64_t &offset, uint64_t level) const;
+                       uint64_t &value, uint64_t level) const;
 
   bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
 
@@ -193,7 +193,7 @@ class LoudsSparse {
   static const position_t kRankBasicBlockSize = 512;
   static const position_t kSelectSampleInterval = 64;
 
-  std::vector<uint64_t> positions_sparse_;
+  std::vector<uint64_t> values_sparse_;
 
   level_t height_;       // trie height
   level_t start_level_;  // louds-sparse encoding starts at this level
@@ -247,12 +247,12 @@ LoudsSparse::LoudsSparse(const FSTBuilder *builder,
                                                   start_level_,
                                                   height_);
 
-  positions_sparse_ = builder->getSparseOffsets();
+  values_sparse_ = builder->getSparseValues();
 }
 
 bool LoudsSparse::lookupKey(const std::string &key,
                             const position_t in_node_num,
-                            uint64_t &offset) const {
+                            uint64_t &value) const {
   position_t node_num = in_node_num;
   position_t pos = getFirstLabelPos(node_num);
   level_t level = 0;
@@ -266,7 +266,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-      offset = positions_sparse_[value_pos];
+      value = values_sparse_[value_pos];
       //this check must be performed from the caller
       // return (*keys_)[value] == key;
       return true;
@@ -280,7 +280,7 @@ bool LoudsSparse::lookupKey(const std::string &key,
 }
 
 inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, position_t in_node_num,
-                                         uint64_t &offset, uint64_t level) const {
+                                         uint64_t &value, uint64_t level) const {
   position_t node_num = in_node_num;
   position_t pos = getFirstLabelPos(node_num);
   for (; level < key_length; level++) {
@@ -293,7 +293,7 @@ inline bool LoudsSparse::lookupKeyAtNode(const char *key, uint64_t key_length, p
     // if trie branch terminates
     if (!child_indicator_bits_->readBit(pos)) {
       uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-      offset = positions_sparse_[value_pos];
+      value = values_sparse_[value_pos];
       //this check must be performed from the caller
       // return (*keys_)[value] == key;
       return true;
@@ -322,8 +322,8 @@ bool LoudsSparse::findNextNodeOrValue(const char keyByte, size_t &node_num) cons
   // find next node or value
   if (!child_indicator_bits_->readBit(pos)) { // branch terminates
     uint64_t value_pos = pos - child_indicator_bits_->rank(pos);
-    uint64_t offset = positions_sparse_[value_pos];
-    node_num = (offset << 2u) | 1u;
+    uint64_t value = values_sparse_[value_pos];
+    node_num = (value << 2u) | 1u;
   } else { // branch continues
     node_num = (getChildNodeNum(pos) << 2u) | 3u;
   }
@@ -340,8 +340,8 @@ void LoudsSparse::getNode(size_t nodeNumber, std::vector<uint8_t> &labels, std::
       values.emplace_back(childNodeNum << 2U | 3U);
     } else { // leads to a value
       uint64_t value_pos = i - child_indicator_bits_->rank(i);
-      auto offset = positions_sparse_[value_pos];
-      values.emplace_back(offset << 2U | 1U);
+      auto value = values_sparse_[value_pos];
+      values.emplace_back(value << 2U | 1U);
     }
   }
 }
@@ -499,7 +499,7 @@ uint64_t LoudsSparse::serializedSize() const {
 
 uint64_t LoudsSparse::getMemoryUsage() const {
   return (sizeof(*this) + labels_->size() + child_indicator_bits_->size() +
-      louds_bits_->size() + positions_sparse_.size() * 8);
+      louds_bits_->size() + values_sparse_.size() * 8);
 }
 
 position_t LoudsSparse::getChildNodeNum(const position_t pos) const {
@@ -702,7 +702,7 @@ void LoudsSparse::Iter::moveToRightMostKey() {
 }
 
 uint64_t LoudsSparse::Iter::getValue() const {
-  return trie_->positions_sparse_[value_pos_[key_len_ - 1]];
+  return trie_->values_sparse_[value_pos_[key_len_ - 1]];
 }
 
 uint64_t LoudsSparse::Iter::getLastIteratorPosition() const {

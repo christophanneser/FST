@@ -64,9 +64,9 @@ class FSTBuilder {
   const std::vector<position_t> &getNodeCounts() const { return node_counts_; }
   level_t getSparseStartLevel() const { return sparse_start_level_; }
 
-  std::vector<uint64_t> getDenseOffsets() const { return positions_dense_; }
+  std::vector<uint64_t> getDenseValues() const { return values_dense_; }
 
-  std::vector<uint64_t> getSparseOffsets() const { return positions_sparse_; }
+  std::vector<uint64_t> getSparseValues() const { return values_sparse_; }
 
  private:
   static bool isSameKey(const std::string &a, const std::string &b) {
@@ -132,19 +132,19 @@ class FSTBuilder {
   uint32_t sparse_dense_ratio_{};
   level_t sparse_start_level_;
 
-  std::vector<std::vector<uint64_t>> positions_;
+  std::vector<std::vector<uint64_t>> values_;
 
   // LOUDS-Sparse bit/byte vectors
   std::vector<std::vector<label_t>> labels_;
   std::vector<std::vector<word_t>> child_indicator_bits_;
   std::vector<std::vector<word_t>> louds_bits_;
-  std::vector<uint64_t> positions_sparse_;
+  std::vector<uint64_t> values_sparse_;
 
   // LOUDS-Dense bit vectors
   std::vector<std::vector<word_t>> bitmap_labels_;
   std::vector<std::vector<word_t>> bitmap_child_indicator_bits_;
   std::vector<std::vector<word_t>> prefixkey_indicator_bits_;
-  std::vector<uint64_t> positions_dense_;
+  std::vector<uint64_t> values_dense_;
 
   // auxiliary per level bookkeeping vectors
   std::vector<position_t> node_counts_;
@@ -168,10 +168,10 @@ void FSTBuilder::buildSparse(const std::vector<std::string> &keys,
     position_t curpos = i;
     while ((i + 1 < keys.size()) && isSameKey(keys[curpos], keys[i + 1])) i++;
     if (i < keys.size() - 1)
-      insertKeyBytesToTrieUntilUnique(keys[curpos], curpos, keys[i + 1],
+      insertKeyBytesToTrieUntilUnique(keys[curpos], values[curpos], keys[i + 1],
                                       level);
     else  // for last key, there is no successor key in the list
-      insertKeyBytesToTrieUntilUnique(keys[curpos], curpos, std::string(),
+      insertKeyBytesToTrieUntilUnique(keys[curpos], values[curpos], std::string(),
                                       level);
   }
 }
@@ -188,7 +188,7 @@ level_t FSTBuilder::skipCommonPrefix(const std::string &key) {
 
 level_t FSTBuilder::insertKeyBytesToTrieUntilUnique(
     const std::string &key,
-    const uint64_t position,
+    const uint64_t value,
     const std::string &next_key,
     const level_t start_level) {
   assert(start_level < key.length());
@@ -208,7 +208,7 @@ level_t FSTBuilder::insertKeyBytesToTrieUntilUnique(
 
   if (level > next_key.length()
       || !isSameKey(key.substr(0, level), next_key.substr(0, level))) {
-    positions_[level - 1].emplace_back(position);
+    values_[level - 1].emplace_back(value);
     return level;
   }
 
@@ -220,7 +220,7 @@ level_t FSTBuilder::insertKeyBytesToTrieUntilUnique(
     insertKeyByte(key[level], level, is_start_of_node, is_term);
     level++;
   }
-  positions_[level - 1].emplace_back(position);
+  values_[level - 1].emplace_back(value);
   return level;
 }
 
@@ -280,16 +280,16 @@ inline void FSTBuilder::determineCutoffLevel() {
 
   // CA build dense and sparse values vectors
   for (uint64_t level = 0; level < sparse_start_level_; level++) {
-    positions_dense_.insert(positions_dense_.end(), positions_[level].begin(),
-                            positions_[level].end());
+    values_dense_.insert(values_dense_.end(), values_[level].begin(),
+                            values_[level].end());
   }
 
-  for (uint64_t level = sparse_start_level_; level < positions_.size();
+  for (uint64_t level = sparse_start_level_; level < values_.size();
        level++) {
-    positions_sparse_.insert(positions_sparse_.end(), positions_[level].begin(),
-                             positions_[level].end());
+    values_sparse_.insert(values_sparse_.end(), values_[level].begin(),
+                             values_[level].end());
   }
-  positions_.clear();
+  values_.clear();
 }
 
 inline uint64_t FSTBuilder::computeDenseMem(const level_t downto_level) const {
@@ -359,7 +359,7 @@ void FSTBuilder::setLabelAndChildIndicatorBitmap(const level_t level,
 
 void FSTBuilder::addLevel() {
   labels_.emplace_back(std::vector<label_t>());
-  positions_.emplace_back(std::vector<uint64_t>());
+  values_.emplace_back(std::vector<uint64_t>());
   child_indicator_bits_.emplace_back(std::vector<word_t>());
   louds_bits_.emplace_back(std::vector<word_t>());
 
