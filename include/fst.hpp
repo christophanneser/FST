@@ -133,6 +133,8 @@ class FST {
 
   uint64_t lookupNodeNum(const char *key, uint64_t key_length) const;
 
+  std::pair<bool, uint64_t> lookupNodeNumOption(const char *key, uint64_t key_length) const;
+
   void moveToLeftmostKeyStartingAtNode(level_t level, size_t node_number, FST::Iter& iter) const;
 
   FST::Iter moveToKeyStartingAtNode(level_t &level, size_t node_number, const std::string &key) const;
@@ -236,7 +238,15 @@ uint64_t FST::lookupNodeNum(const char *key, uint64_t key_length) const {
   if (louds_dense_->lookupNodeNumber(key, key_length, node_num))
     if (key_length >= louds_sparse_->getStartLevel()) louds_sparse_->lookupNodeNumber(key, key_length, node_num);
   return node_num;
-};
+}
+
+std::pair<bool, uint64_t> FST::lookupNodeNumOption(const char *key, uint64_t key_length) const {
+  position_t node_num = 0;
+  if (!louds_dense_->lookupNodeNumberOption(key, key_length, node_num)) return {false, UINT64_MAX};
+  if (key_length < louds_sparse_->getStartLevel()) return {false, UINT64_MAX};
+  if (louds_sparse_->lookupNodeNumberOption(key, key_length, node_num)) return {true, node_num};
+  return {false, UINT64_MAX};
+}
 
 inline bool FST::lookupKeyAtNode(const char *key, uint64_t key_length, level_t level, size_t node_number,
                                  uint64_t &value) const {

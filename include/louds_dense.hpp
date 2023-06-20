@@ -155,6 +155,8 @@ class LoudsDense {
 
   bool lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const;
 
+  bool lookupNodeNumberOption(const char *key, uint64_t key_length, position_t &out_node_num) const;
+
   bool findNextNodeOrValue(const char keyByte, size_t &node_number) const;
 
   void moveToKeyGreaterThanStartingNodeNumber(position_t nodeNumber,
@@ -370,11 +372,11 @@ bool LoudsDense::lookupNodeNumber(const char *key, uint64_t key_length, position
   // todo check when to return true but set node_num to 0 -> finished in dense already
   for (; level < height_ && level < key_length; level++) {
     pos = (node_num * kNodeFanout);
-    if (level >= key_length) {  // if run out of searchKey bytes
+    /*if (level >= key_length) {  // if run out of searchKey bytes
       out_node_num = node_num;
       return false;
-    }
-    pos += (label_t) key[level];
+    }*/
+    pos += reinterpret_cast<const uint8_t *>(key)[level];
 
     assert(label_bitmaps_->readBit(pos)); // assert that key exists
     assert(child_indicator_bitmaps_->readBit(pos)); // assert branch does not terminate
@@ -385,7 +387,31 @@ bool LoudsDense::lookupNodeNumber(const char *key, uint64_t key_length, position
   // search will continue in LoudsSparse
   out_node_num = node_num;
   return true;
-};
+}
+
+bool LoudsDense::lookupNodeNumberOption(const char *key, uint64_t key_length, position_t &out_node_num) const {
+  position_t node_num = 0;
+  position_t pos = 0;
+  level_t level = 0;
+  // todo check when to return true but set node_num to 0 -> finished in dense already
+  for (; level < height_ && level < key_length; level++) {
+    pos = (node_num * kNodeFanout);
+    if (level >= key_length) {  // if run out of searchKey bytes
+      out_node_num = node_num;
+      return false;
+    }
+    pos += reinterpret_cast<const uint8_t *>(key)[level];
+
+    if (!label_bitmaps_->readBit(pos)) return false; // does key exists?
+    if (!child_indicator_bitmaps_->readBit(pos)) return false; // does branch not terminate?
+
+    node_num = getChildNodeNum(pos);
+  }
+
+  // search will continue in LoudsSparse
+  out_node_num = node_num;
+  return true;
+}
 
 // returns true if next node or value is found, false if keyByte is not immanent
 // 1. next nodenumber has been found, return true

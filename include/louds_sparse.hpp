@@ -116,6 +116,8 @@ class LoudsSparse {
 
   void lookupNodeNumber(const char *key, uint64_t key_length, position_t &out_node_num) const;
 
+  bool lookupNodeNumberOption(const char *key, uint64_t key_length, position_t &out_node_num) const;
+
   void moveToKeyGreaterThan(const std::string &searched_key, bool inclusive, level_t level,
                             LoudsSparse::Iter &iter) const;
 
@@ -373,6 +375,19 @@ void LoudsSparse::lookupNodeNumber(const char *key, uint64_t key_length, positio
     node_num = getChildNodeNum(pos);
     pos = getFirstLabelPos(node_num);
   }
+}
+
+bool LoudsSparse::lookupNodeNumberOption(const char *key, uint64_t key_length, position_t &node_num) const {
+  position_t pos = getFirstLabelPos(node_num);
+
+  for (uint64_t level = start_level_; level < key_length; level++) {
+    bool found_label = labels_->search((label_t) key[level], pos, nodeSize(pos));
+    if (!found_label || !child_indicator_bits_->readBit(pos)) return false;
+    // move to child
+    node_num = getChildNodeNum(pos);
+    pos = getFirstLabelPos(node_num);
+  }
+  return true;
 }
 
 void LoudsSparse::moveToKeyGreaterThan(const std::string &searched_key,
